@@ -85,14 +85,21 @@ export interface QuickAction {
 
 export type ProductionStatus = "diajukan" | "diproses" | "selesai" | "dibatalkan";
 
+/**
+ * Catatan produksi anggota komunitas (modul Data Produksi — tahap 4).
+ * `productionDate` & `id` disimpan sebagai string (ISO date / dummy id) karena
+ * seluruh data pada modul ini masih berupa data dummy TypeScript, belum
+ * terhubung ke database/backend sungguhan.
+ */
 export interface ProductionRecord {
   id: string;
-  productName: string;
+  productionDate: string;
   memberName: string;
+  productName: string;
   quantity: number;
-  unit: string;
+  duration: number;
   status: ProductionStatus;
-  date: string;
+  notes: string;
 }
 
 export type MemberStatus = "aktif" | "nonaktif";

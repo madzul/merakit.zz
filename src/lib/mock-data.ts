@@ -26,11 +26,20 @@ export const CURRENT_USER: CurrentUser = {
 };
 
 export const PRODUCTION_RECORDS: ProductionRecord[] = [
-  { id: "prod-1", productName: "Syal Rajut Motif Bunga", memberName: "Rina Marlina", quantity: 12, unit: "pcs", status: "selesai", date: "2026-08-20" },
-  { id: "prod-2", productName: "Tas Rajut Serut", memberName: "Dewi Anggraini", quantity: 8, unit: "pcs", status: "diproses", date: "2026-08-22" },
-  { id: "prod-3", productName: "Topi Rajut Anak", memberName: "Wulan Sari", quantity: 20, unit: "pcs", status: "diajukan", date: "2026-08-23" },
-  { id: "prod-4", productName: "Sarung Bantal Rajut", memberName: "Rina Marlina", quantity: 15, unit: "pcs", status: "selesai", date: "2026-08-18" },
-  { id: "prod-5", productName: "Dompet Rajut Mini", memberName: "Yuni Kartika", quantity: 10, unit: "pcs", status: "dibatalkan", date: "2026-08-15" },
+  { id: "prod-1", productionDate: "2026-08-20", memberName: "Rina Marlina", productName: "Syal Rajut Motif Bunga", quantity: 12, duration: 4, status: "selesai", notes: "Batch reguler, kualitas benang katun." },
+  { id: "prod-2", productionDate: "2026-08-22", memberName: "Dewi Anggraini", productName: "Tas Rajut Serut", quantity: 8, duration: 6, status: "diproses", notes: "Menunggu aksesori tali serut." },
+  { id: "prod-3", productionDate: "2026-08-23", memberName: "Wulan Sari", productName: "Topi Rajut Anak", quantity: 20, duration: 5, status: "diajukan", notes: "" },
+  { id: "prod-4", productionDate: "2026-08-18", memberName: "Rina Marlina", productName: "Sarung Bantal Rajut", quantity: 15, duration: 3, status: "selesai", notes: "Pesanan bazar komunitas." },
+  { id: "prod-5", productionDate: "2026-08-15", memberName: "Yuni Kartika", productName: "Dompet Rajut Mini", quantity: 10, duration: 2, status: "dibatalkan", notes: "Stok benang tidak sesuai warna pesanan." },
+  { id: "prod-6", productionDate: "2026-08-10", memberName: "Siti Aminah", productName: "Syal Rajut Motif Bunga", quantity: 6, duration: 3, status: "selesai", notes: "" },
+  { id: "prod-7", productionDate: "2026-08-05", memberName: "Wulan Sari", productName: "Sarung Bantal Rajut", quantity: 9, duration: 4, status: "selesai", notes: "Motif custom permintaan pelanggan." },
+  { id: "prod-8", productionDate: "2026-07-28", memberName: "Dewi Anggraini", productName: "Dompet Rajut Mini", quantity: 14, duration: 2, status: "selesai", notes: "" },
+  { id: "prod-9", productionDate: "2026-07-22", memberName: "Yuni Kartika", productName: "Topi Rajut Anak", quantity: 18, duration: 5, status: "diproses", notes: "Perlu tambahan 2 hari untuk finishing." },
+  { id: "prod-10", productionDate: "2026-07-15", memberName: "Rina Marlina", productName: "Tas Rajut Serut", quantity: 7, duration: 6, status: "selesai", notes: "Kolaborasi dengan Dewi Anggraini." },
+  { id: "prod-11", productionDate: "2026-07-08", memberName: "Siti Aminah", productName: "Topi Rajut Anak", quantity: 11, duration: 4, status: "diajukan", notes: "" },
+  { id: "prod-12", productionDate: "2026-06-30", memberName: "Wulan Sari", productName: "Dompet Rajut Mini", quantity: 16, duration: 3, status: "selesai", notes: "Stok tambahan untuk katalog online." },
+  { id: "prod-13", productionDate: "2026-06-18", memberName: "Dewi Anggraini", productName: "Syal Rajut Motif Bunga", quantity: 5, duration: 2, status: "dibatalkan", notes: "Anggota berhalangan, dijadwalkan ulang." },
+  { id: "prod-14", productionDate: "2026-06-05", memberName: "Yuni Kartika", productName: "Sarung Bantal Rajut", quantity: 13, duration: 4, status: "selesai", notes: "" },
 ];
 
 export const MEMBERS: Member[] = [

@@ -27,3 +27,18 @@ export function formatRupiahShort(value: number): string {
   }
   return formatRupiah(value);
 }
+
+/**
+ * Format tanggal ISO ("YYYY-MM-DD") menjadi format tanggal Indonesia singkat,
+ * mis. "2026-08-20" -> "20 Agu 2026".
+ */
+export function formatDate(isoDate: string): string {
+  const date = new Date(`${isoDate}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return isoDate;
+  return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", year: "numeric" }).format(date);
+}
+
+/** Format durasi pengerjaan (dalam jam) mis. 4 -> "4 jam". */
+export function formatDuration(hours: number): string {
+  return `${hours} jam`;
+}
