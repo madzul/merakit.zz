@@ -132,27 +132,89 @@ export interface Member {
   notes: string;
 }
 
-export type ProductStatus = "tersedia" | "stok menipis" | "habis";
+/**
+ * Status ringkas untuk `ProductListItem` (dipakai dropdown pilih produk pada
+ * modul Data Produksi). Terpisah dari `Product` (katalog produk — tahap 6)
+ * agar kedua modul bisa berkembang independen tanpa saling memutus tipe.
+ */
+export type ProductListStatus = "tersedia" | "stok menipis" | "habis";
 
-export interface Product {
+/** Item produk ringkas — hanya dipakai untuk dropdown pilih produk di modul Data Produksi. */
+export interface ProductListItem {
   id: string;
   name: string;
   category: string;
   price: number;
   stock: number;
-  status: ProductStatus;
+  status: ProductListStatus;
 }
 
-export type OrderStatus = "menunggu" | "diproses" | "dikirim" | "selesai" | "dibatalkan";
+/**
+ * Status ringkas untuk `OrderListItem` (data placeholder, belum dipakai oleh
+ * komponen mana pun). Terpisah dari `OrderStatus`/`Order` (modul Data
+ * Pesanan — tahap 6) agar tidak saling memutus tipe.
+ */
+export type OrderListStatus = "menunggu" | "diproses" | "dikirim" | "selesai" | "dibatalkan";
 
-export interface Order {
+/** Ringkasan pesanan (data placeholder untuk kebutuhan lain di masa depan). */
+export interface OrderListItem {
   id: string;
   orderNumber: string;
   customerName: string;
   itemCount: number;
   total: number;
-  status: OrderStatus;
+  status: OrderListStatus;
   date: string;
+}
+
+/**
+ * Kategori katalog produk (modul Katalog Produk — tahap 6). Data masih dummy
+ * (in-memory), belum terhubung database/backend/Supabase.
+ */
+export const PRODUCT_CATEGORIES = ["Syal", "Tas", "Topi", "Dekorasi Rumah", "Aksesoris"] as const;
+export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
+
+/**
+ * Produk katalog MERAKIT (modul Katalog Produk — tahap 6). Data masih dummy
+ * (in-memory), belum terhubung database/backend/Supabase.
+ */
+export interface Product {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  price: number;
+  stock: number;
+  /** Path gambar placeholder lokal (mis. "/products/placeholder-1.svg"), bukan URL eksternal. */
+  imageUrl: string;
+  isActive: boolean;
+  /** Tanggal dibuat, format ISO ("YYYY-MM-DD"). */
+  createdAt: string;
+}
+
+/**
+ * Status pesanan (modul Data Pesanan — tahap 6). Menggunakan istilah
+ * berkapital sesuai spesifikasi tahap 6.
+ */
+export type OrderStatus = "Menunggu" | "Diproses" | "Selesai" | "Dibatalkan";
+
+/**
+ * Pesanan pelanggan (modul Data Pesanan — tahap 6). Data masih dummy
+ * (in-memory), belum terhubung database/backend/Supabase.
+ */
+export interface Order {
+  id: string;
+  /** Tanggal pesanan, format ISO ("YYYY-MM-DD"). */
+  orderDate: string;
+  customerName: string;
+  /** Nomor telepon/WhatsApp pemesan, format internasional tanpa "+", mis. "6281234567890". */
+  customerPhone: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  totalAmount: number;
+  status: OrderStatus;
+  notes: string;
 }
 
 export type TransactionType = "pemasukan" | "pengeluaran";

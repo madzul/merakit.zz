@@ -14,6 +14,19 @@ export function formatRupiah(value: number): string {
 }
 
 /**
+ * Format angka menjadi mata uang Rupiah menggunakan opsi `style: "currency"`
+ * bawaan `Intl.NumberFormat` (modul Katalog Produk & Data Pesanan — tahap 6),
+ * contoh: 5600000 -> "Rp5.600.000".
+ */
+export function formatCurrency(value: number): string {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+/**
  * Format angka Rupiah singkat untuk ruang terbatas (mis. sumbu grafik), contoh:
  * 5600000 -> "Rp5,6jt", 45000 -> "Rp45rb".
  */

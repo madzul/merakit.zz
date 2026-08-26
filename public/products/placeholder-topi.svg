@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Placeholder gambar produk kategori Topi">
+  <rect width="200" height="200" fill="#fefce8"/>
+  <path d="M100 55 a45 45 0 0 1 45 45 h-90 a45 45 0 0 1 45 -45 z" fill="#fde68a"/>
+  <rect x="45" y="100" width="110" height="16" rx="8" fill="#facc15"/>
+  <circle cx="100" cy="52" r="6" fill="#eab308"/>
+</svg>

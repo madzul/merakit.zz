@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Placeholder gambar produk kategori Tas">
+  <rect width="200" height="200" fill="#eff6ff"/>
+  <path d="M70 80 a30 30 0 0 1 60 0" stroke="#60a5fa" stroke-width="6" fill="none"/>
+  <rect x="55" y="80" width="90" height="70" rx="10" fill="#93c5fd"/>
+  <rect x="55" y="80" width="90" height="14" rx="6" fill="#3b82f6"/>
+</svg>

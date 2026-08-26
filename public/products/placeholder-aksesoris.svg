@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Placeholder gambar produk kategori Aksesoris">
+  <rect width="200" height="200" fill="#faf5ff"/>
+  <rect x="65" y="75" width="70" height="55" rx="10" fill="#d8b4fe"/>
+  <path d="M85 75 v-10 a15 15 0 0 1 30 0 v10" stroke="#a855f7" stroke-width="5" fill="none"/>
+</svg>

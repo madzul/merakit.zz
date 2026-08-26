@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Placeholder gambar produk kategori Syal">
+  <rect width="200" height="200" fill="#fdf2f8"/>
+  <rect x="30" y="70" width="140" height="60" rx="10" fill="#f9a8d4"/>
+  <path d="M30 70 q10 20 0 40" stroke="#ec4899" stroke-width="4" fill="none"/>
+  <path d="M170 70 q-10 20 0 40" stroke="#ec4899" stroke-width="4" fill="none"/>
+  <circle cx="60" cy="100" r="6" fill="#ec4899"/>
+  <circle cx="100" cy="100" r="6" fill="#ec4899"/>
+  <circle cx="140" cy="100" r="6" fill="#ec4899"/>
+</svg>

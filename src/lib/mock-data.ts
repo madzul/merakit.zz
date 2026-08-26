@@ -2,6 +2,8 @@ import type {
   CurrentUser,
   ProductionRecord,
   Member,
+  ProductListItem,
+  OrderListItem,
   Product,
   Order,
   Transaction,
@@ -138,7 +140,8 @@ export const MEMBERS: Member[] = [
   },
 ];
 
-export const PRODUCTS: Product[] = [
+/** Item produk ringkas untuk dropdown pilih produk di modul Data Produksi. */
+export const PRODUCTS: ProductListItem[] = [
   { id: "prd-1", name: "Syal Rajut Motif Bunga", category: "Syal", price: 85000, stock: 24, status: "tersedia" },
   { id: "prd-2", name: "Tas Rajut Serut", category: "Tas", price: 120000, stock: 6, status: "stok menipis" },
   { id: "prd-3", name: "Topi Rajut Anak", category: "Topi", price: 45000, stock: 0, status: "habis" },
@@ -146,12 +149,200 @@ export const PRODUCTS: Product[] = [
   { id: "prd-5", name: "Dompet Rajut Mini", category: "Aksesoris", price: 40000, stock: 30, status: "tersedia" },
 ];
 
-export const ORDERS: Order[] = [
+/** Ringkasan pesanan (data placeholder, belum dipakai oleh komponen mana pun). */
+export const ORDERS: OrderListItem[] = [
   { id: "ord-1", orderNumber: "INV-2026-0091", customerName: "Melati Putri", itemCount: 2, total: 170000, status: "diproses", date: "2026-08-24" },
   { id: "ord-2", orderNumber: "INV-2026-0090", customerName: "Agus Setiawan", itemCount: 1, total: 120000, status: "dikirim", date: "2026-08-23" },
   { id: "ord-3", orderNumber: "INV-2026-0089", customerName: "Nadia Ramadhani", itemCount: 3, total: 210000, status: "selesai", date: "2026-08-21" },
   { id: "ord-4", orderNumber: "INV-2026-0088", customerName: "Bagus Prasetyo", itemCount: 1, total: 45000, status: "menunggu", date: "2026-08-25" },
   { id: "ord-5", orderNumber: "INV-2026-0087", customerName: "Citra Lestari", itemCount: 2, total: 130000, status: "dibatalkan", date: "2026-08-19" },
+];
+
+/**
+ * Katalog produk MERAKIT (modul Katalog Produk — tahap 6). Data dummy
+ * in-memory, gambar memakai placeholder lokal di /public/products (bukan
+ * URL eksternal), belum terhubung database/backend/Supabase.
+ */
+export const PRODUCT_CATALOG: Product[] = [
+  {
+    id: "ktp-1",
+    name: "Syal Rajut Motif Bunga",
+    category: "Syal",
+    description: "Syal rajut lembut dengan motif bunga khas, cocok untuk cuaca sejuk sehari-hari.",
+    price: 85000,
+    stock: 24,
+    imageUrl: "/products/placeholder-syal.svg",
+    isActive: true,
+    createdAt: "2026-03-12",
+  },
+  {
+    id: "ktp-2",
+    name: "Tas Rajut Serut",
+    category: "Tas",
+    description: "Tas rajut serut serbaguna, muat untuk kebutuhan belanja maupun jalan-jalan santai.",
+    price: 120000,
+    stock: 6,
+    imageUrl: "/products/placeholder-tas.svg",
+    isActive: true,
+    createdAt: "2026-04-02",
+  },
+  {
+    id: "ktp-3",
+    name: "Topi Rajut Anak",
+    category: "Topi",
+    description: "Topi rajut hangat untuk anak-anak, tersedia dalam berbagai warna cerah.",
+    price: 45000,
+    stock: 0,
+    imageUrl: "/products/placeholder-topi.svg",
+    isActive: false,
+    createdAt: "2026-02-20",
+  },
+  {
+    id: "ktp-4",
+    name: "Sarung Bantal Rajut",
+    category: "Dekorasi Rumah",
+    description: "Sarung bantal rajut motif geometris untuk mempercantik ruang tamu.",
+    price: 65000,
+    stock: 18,
+    imageUrl: "/products/placeholder-dekorasi.svg",
+    isActive: true,
+    createdAt: "2026-05-08",
+  },
+  {
+    id: "ktp-5",
+    name: "Dompet Rajut Mini",
+    category: "Aksesoris",
+    description: "Dompet rajut mini yang ringkas, pas untuk menyimpan kartu dan uang receh.",
+    price: 40000,
+    stock: 30,
+    imageUrl: "/products/placeholder-aksesoris.svg",
+    isActive: true,
+    createdAt: "2026-01-15",
+  },
+  {
+    id: "ktp-6",
+    name: "Selimut Rajut Bayi",
+    category: "Dekorasi Rumah",
+    description: "Selimut rajut lembut dan hipoalergenik, aman untuk kulit bayi.",
+    price: 150000,
+    stock: 4,
+    imageUrl: "/products/placeholder-dekorasi.svg",
+    isActive: true,
+    createdAt: "2026-06-01",
+  },
+  {
+    id: "ktp-7",
+    name: "Cardigan Rajut Dewasa",
+    category: "Syal",
+    description: "Cardigan rajut hangat dengan potongan longgar, cocok untuk pria dan wanita.",
+    price: 175000,
+    stock: 9,
+    imageUrl: "/products/placeholder-syal.svg",
+    isActive: true,
+    createdAt: "2026-06-18",
+  },
+  {
+    id: "ktp-8",
+    name: "Gantungan Kunci Rajut",
+    category: "Aksesoris",
+    description: "Gantungan kunci rajut lucu berbagai karakter, cocok untuk oleh-oleh.",
+    price: 15000,
+    stock: 0,
+    imageUrl: "/products/placeholder-aksesoris.svg",
+    isActive: false,
+    createdAt: "2026-07-05",
+  },
+];
+
+/**
+ * Daftar pesanan pelanggan (modul Data Pesanan — tahap 6). Data dummy
+ * in-memory, belum terhubung database/backend/Supabase.
+ */
+export const ORDER_LIST: Order[] = [
+  {
+    id: "psn-1",
+    orderDate: "2026-08-24",
+    customerName: "Melati Putri",
+    customerPhone: "6281234509001",
+    productName: "Syal Rajut Motif Bunga",
+    quantity: 2,
+    unitPrice: 85000,
+    totalAmount: 170000,
+    status: "Diproses",
+    notes: "Tolong dibungkus kado.",
+  },
+  {
+    id: "psn-2",
+    orderDate: "2026-08-23",
+    customerName: "Agus Setiawan",
+    customerPhone: "6281234509002",
+    productName: "Tas Rajut Serut",
+    quantity: 1,
+    unitPrice: 120000,
+    totalAmount: 120000,
+    status: "Selesai",
+    notes: "",
+  },
+  {
+    id: "psn-3",
+    orderDate: "2026-08-21",
+    customerName: "Nadia Ramadhani",
+    customerPhone: "6281234509003",
+    productName: "Dompet Rajut Mini",
+    quantity: 3,
+    unitPrice: 40000,
+    totalAmount: 120000,
+    status: "Selesai",
+    notes: "Warna campur, sesuai stok yang ada.",
+  },
+  {
+    id: "psn-4",
+    orderDate: "2026-08-25",
+    customerName: "Bagus Prasetyo",
+    customerPhone: "6281234509004",
+    productName: "Topi Rajut Anak",
+    quantity: 1,
+    unitPrice: 45000,
+    totalAmount: 45000,
+    status: "Menunggu",
+    notes: "Konfirmasi ketersediaan stok dulu.",
+  },
+  {
+    id: "psn-5",
+    orderDate: "2026-08-19",
+    customerName: "Citra Lestari",
+    customerPhone: "6281234509005",
+    productName: "Sarung Bantal Rajut",
+    quantity: 2,
+    unitPrice: 65000,
+    totalAmount: 130000,
+    status: "Dibatalkan",
+    notes: "Pembeli membatalkan karena salah pesan warna.",
+  },
+  {
+    id: "psn-6",
+    orderDate: "2026-08-26",
+    customerName: "Rangga Wibowo",
+    customerPhone: "6281234509006",
+    productName: "Cardigan Rajut Dewasa",
+    quantity: 1,
+    unitPrice: 175000,
+    totalAmount: 175000,
+    status: "Menunggu",
+    notes: "",
+  },
+  {
+    id: "psn-7",
+    orderDate: "2026-08-20",
+    customerName: "Putri Ayu",
+    customerPhone: "6281234509007",
+    productName: "Selimut Rajut Bayi",
+    quantity: 1,
+    unitPrice: 150000,
+    totalAmount: 150000,
+    status: "Diproses",
+    notes: "Kirim sebelum akhir bulan.",
+  },
 ];
 
 export const TRANSACTIONS: Transaction[] = [
@@ -225,6 +416,6 @@ export const RECENT_ACTIVITIES: ActivityItem[] = [
 export const QUICK_ACTIONS: QuickAction[] = [
   { id: "qa-1", key: "produksi", label: "Input Produksi", description: "Catat hasil produksi terbaru", href: "/produksi" },
   { id: "qa-2", key: "anggota", label: "Tambah Anggota", description: "Daftarkan perajin baru", href: "/dashboard/anggota/tambah" },
-  { id: "qa-3", key: "produk", label: "Tambah Produk", description: "Tambahkan produk ke katalog", href: "/produk" },
-  { id: "qa-4", key: "pesanan", label: "Buat Pesanan", description: "Buat pesanan pelanggan baru", href: "/pesanan" },
+  { id: "qa-3", key: "produk", label: "Tambah Produk", description: "Tambahkan produk ke katalog", href: "/dashboard/produk/tambah" },
+  { id: "qa-4", key: "pesanan", label: "Buat Pesanan", description: "Buat pesanan pelanggan baru", href: "/dashboard/pesanan/tambah" },
 ];
