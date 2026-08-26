@@ -42,12 +42,100 @@ export const PRODUCTION_RECORDS: ProductionRecord[] = [
   { id: "prod-14", productionDate: "2026-06-05", memberName: "Yuni Kartika", productName: "Sarung Bantal Rajut", quantity: 13, duration: 4, status: "selesai", notes: "" },
 ];
 
+/**
+ * Data dummy anggota. `disabilityDescription` & `notes` adalah keterangan
+ * kebutuhan dukungan yang hanya boleh ditampilkan di area admin (lihat
+ * catatan privasi pada definisi tipe `Member`).
+ */
 export const MEMBERS: Member[] = [
-  { id: "mem-1", name: "Rina Marlina", role: "Perajin Senior", city: "Bandung", joinDate: "2023-02-10", status: "aktif" },
-  { id: "mem-2", name: "Dewi Anggraini", role: "Perajin", city: "Cimahi", joinDate: "2023-06-01", status: "aktif" },
-  { id: "mem-3", name: "Wulan Sari", role: "Perajin", city: "Bandung", joinDate: "2024-01-15", status: "aktif" },
-  { id: "mem-4", name: "Yuni Kartika", role: "Pengurus", city: "Bandung", joinDate: "2022-11-20", status: "aktif" },
-  { id: "mem-5", name: "Siti Aminah", role: "Perajin", city: "Sumedang", joinDate: "2024-05-05", status: "nonaktif" },
+  {
+    id: "mem-1",
+    name: "Rina Marlina",
+    phone: "6281234567801",
+    avatar: "RM",
+    disabilityDescription: "Menggunakan kursi roda; membutuhkan meja kerja dengan tinggi yang disesuaikan.",
+    monthlyProduction: 27,
+    status: "aktif",
+    joinedAt: "2023-02-10",
+    notes: "Pendampingan rutin bulanan, perkembangan produksi stabil.",
+  },
+  {
+    id: "mem-2",
+    name: "Dewi Anggraini",
+    phone: "6281234567802",
+    avatar: "DA",
+    disabilityDescription: "",
+    monthlyProduction: 22,
+    status: "aktif",
+    joinedAt: "2023-06-01",
+    notes: "",
+  },
+  {
+    id: "mem-3",
+    name: "Wulan Sari",
+    phone: "6281234567803",
+    avatar: "WS",
+    disabilityDescription: "Tuli; komunikasi melalui pesan teks/WhatsApp dan bahasa isyarat.",
+    monthlyProduction: 20,
+    status: "aktif",
+    joinedAt: "2024-01-15",
+    notes: "Koordinasi jadwal pelatihan dilakukan tertulis via grup WhatsApp.",
+  },
+  {
+    id: "mem-4",
+    name: "Yuni Kartika",
+    phone: "6281234567804",
+    avatar: "YK",
+    disabilityDescription: "",
+    monthlyProduction: 18,
+    status: "aktif",
+    joinedAt: "2022-11-20",
+    notes: "Merangkap sebagai pengurus, membantu pelatihan anggota baru.",
+  },
+  {
+    id: "mem-5",
+    name: "Siti Aminah",
+    phone: "6281234567805",
+    avatar: "SA",
+    disabilityDescription: "Low vision; membutuhkan pencahayaan tambahan dan materi cetak berukuran besar.",
+    monthlyProduction: 6,
+    status: "nonaktif",
+    joinedAt: "2024-05-05",
+    notes: "Nonaktif sementara karena kendala kesehatan, dijadwalkan kunjungan pendampingan.",
+  },
+  {
+    id: "mem-6",
+    name: "Lina Marlina",
+    phone: "6281234567806",
+    avatar: "LM",
+    disabilityDescription: "",
+    monthlyProduction: 28,
+    status: "aktif",
+    joinedAt: "2022-08-14",
+    notes: "Kontributor produksi tertinggi bulan ini.",
+  },
+  {
+    id: "mem-7",
+    name: "Sari Kusuma",
+    phone: "6281234567807",
+    avatar: "SK",
+    disabilityDescription: "Disabilitas fisik pada tangan kanan; menggunakan alat bantu jarum adaptif.",
+    monthlyProduction: 15,
+    status: "aktif",
+    joinedAt: "2023-09-02",
+    notes: "Menggunakan alat bantu jarum rajut adaptif hasil pelatihan komunitas.",
+  },
+  {
+    id: "mem-8",
+    name: "Andi Permana",
+    phone: "6281234567808",
+    avatar: "AP",
+    disabilityDescription: "",
+    monthlyProduction: 12,
+    status: "nonaktif",
+    joinedAt: "2023-12-01",
+    notes: "Tidak aktif sejak pindah domisili luar kota.",
+  },
 ];
 
 export const PRODUCTS: Product[] = [
@@ -136,7 +224,7 @@ export const RECENT_ACTIVITIES: ActivityItem[] = [
 
 export const QUICK_ACTIONS: QuickAction[] = [
   { id: "qa-1", key: "produksi", label: "Input Produksi", description: "Catat hasil produksi terbaru", href: "/produksi" },
-  { id: "qa-2", key: "anggota", label: "Tambah Anggota", description: "Daftarkan perajin baru", href: "/anggota" },
+  { id: "qa-2", key: "anggota", label: "Tambah Anggota", description: "Daftarkan perajin baru", href: "/dashboard/anggota/tambah" },
   { id: "qa-3", key: "produk", label: "Tambah Produk", description: "Tambahkan produk ke katalog", href: "/produk" },
   { id: "qa-4", key: "pesanan", label: "Buat Pesanan", description: "Buat pesanan pelanggan baru", href: "/pesanan" },
 ];

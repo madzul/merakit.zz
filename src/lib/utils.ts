@@ -42,3 +42,40 @@ export function formatDate(isoDate: string): string {
 export function formatDuration(hours: number): string {
   return `${hours} jam`;
 }
+
+const AVATAR_PALETTE = [
+  "bg-primary-100 text-primary-700",
+  "bg-secondary-200 text-secondary-700",
+  "bg-info-50 text-info-600",
+  "bg-warning-50 text-warning-600",
+  "bg-success-50 text-success-600",
+];
+
+/**
+ * Warna latar avatar inisial yang konsisten untuk sebuah string (mis. id
+ * anggota), tanpa foto/URL eksternal — cukup untuk kebutuhan data dummy.
+ */
+export function getAvatarColorClass(seed: string): string {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash * 31 + seed.charCodeAt(i)) % AVATAR_PALETTE.length;
+  }
+  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
+}
+
+/** Format nomor telepon "628xxx" menjadi format tampilan "+62 8xx-xxxx-xxxx" (dummy, best-effort). */
+export function formatPhoneDisplay(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (!digits) return "-";
+  const withCountryCode = digits.startsWith("62") ? digits : `62${digits.replace(/^0/, "")}`;
+  const rest = withCountryCode.slice(2);
+  const parts = [rest.slice(0, 3), rest.slice(3, 7), rest.slice(7)].filter(Boolean);
+  return `+62 ${parts.join("-")}`;
+}
+
+/** Tautan wa.me dari nomor telepon dummy. */
+export function toWhatsAppLink(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  const withCountryCode = digits.startsWith("62") ? digits : `62${digits.replace(/^0/, "")}`;
+  return `https://wa.me/${withCountryCode}`;
+}

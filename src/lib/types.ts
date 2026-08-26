@@ -104,13 +104,32 @@ export interface ProductionRecord {
 
 export type MemberStatus = "aktif" | "nonaktif";
 
+/**
+ * Data anggota komunitas rajut inklusif (modul Data Anggota — tahap 5).
+ * Seluruh data masih dummy (in-memory), belum terhubung database/backend.
+ *
+ * Catatan privasi: `disabilityDescription` & `notes` berisi keterangan
+ * kebutuhan dukungan/pendampingan yang sifatnya sensitif. Field ini HANYA
+ * ditampilkan pada area admin (dashboard di balik login), dan tidak boleh
+ * dirender pada halaman publik mana pun. Gunakan istilah yang hormat dan
+ * tidak stigmatis (person-first, fokus pada kebutuhan dukungan, bukan label).
+ */
 export interface Member {
   id: string;
   name: string;
-  role: string;
-  city: string;
-  joinDate: string;
+  /** Nomor telepon/WhatsApp, format internasional tanpa "+", mis. "6281234567890". */
+  phone: string;
+  /** Inisial nama untuk avatar (dummy, tanpa foto/URL eksternal), mis. "RM". */
+  avatar: string;
+  /** Keterangan kebutuhan dukungan — data sensitif, khusus area admin. */
+  disabilityDescription: string;
+  /** Jumlah produksi (pcs) pada bulan berjalan. */
+  monthlyProduction: number;
   status: MemberStatus;
+  /** Tanggal bergabung, format ISO ("YYYY-MM-DD"). */
+  joinedAt: string;
+  /** Catatan pendampingan dari pengurus/admin. */
+  notes: string;
 }
 
 export type ProductStatus = "tersedia" | "stok menipis" | "habis";

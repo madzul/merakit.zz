@@ -24,10 +24,19 @@ function BrandMark() {
 function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
 
+  // Pilih item nav dengan kecocokan prefix terpanjang, agar mis. "/dashboard"
+  // tidak ikut aktif ketika pathname sebenarnya "/dashboard/anggota".
+  const activeHref = NAV_ITEMS.reduce<string | null>((longest, item) => {
+    const matches = pathname === item.href || pathname.startsWith(`${item.href}/`);
+    if (!matches) return longest;
+    if (!longest || item.href.length > longest.length) return item.href;
+    return longest;
+  }, null);
+
   return (
     <nav className="flex flex-col gap-1 px-3">
       {NAV_ITEMS.map((item) => {
-        const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const isActive = item.href === activeHref;
         const Icon = item.icon;
         return (
           <Link
