@@ -24,7 +24,7 @@ export type StatCardTone =
   | "danger"
   | "info";
 
-export type DashboardStatIcon = "Boxes" | "ClipboardList" | "Users" | "Wallet";
+export type DashboardStatIcon = "Boxes" | "ClipboardList" | "Users" | "Wallet" | "ShoppingBag";
 
 export interface DashboardStat {
   label: string;
@@ -37,6 +37,50 @@ export interface DashboardStat {
 export interface ProductionTrendPoint {
   bulan: string;
   jumlah: number;
+}
+
+/** Titik data gabungan untuk grafik Produksi & Penjualan pada halaman dashboard. */
+export interface ProductionSalesPoint {
+  bulan: string;
+  produksi: number;
+  penjualan: number;
+}
+
+export type MaterialStockStatus = "aman" | "menipis" | "habis";
+
+export interface MaterialStockItem {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  status: MaterialStockStatus;
+}
+
+export interface TopMember {
+  id: string;
+  name: string;
+  role: string;
+  contribution: number;
+  unit: string;
+}
+
+export type ActivityType = "produksi" | "pesanan" | "produk" | "anggota" | "stok";
+
+export interface ActivityItem {
+  id: string;
+  type: ActivityType;
+  message: string;
+  timestamp: string;
+}
+
+export type QuickActionKey = "produksi" | "anggota" | "produk" | "pesanan";
+
+export interface QuickAction {
+  id: string;
+  key: QuickActionKey;
+  label: string;
+  description: string;
+  href: string;
 }
 
 export type ProductionStatus = "diajukan" | "diproses" | "selesai" | "dibatalkan";

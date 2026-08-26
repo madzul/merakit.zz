@@ -9,7 +9,13 @@ import type {
   Promo,
   DashboardStat,
   ProductionTrendPoint,
+  ProductionSalesPoint,
+  MaterialStockItem,
+  TopMember,
+  ActivityItem,
+  QuickAction,
 } from "@/lib/types";
+import { formatRupiah } from "@/lib/utils";
 
 export const CURRENT_USER: CurrentUser = {
   id: "usr-001",
@@ -74,10 +80,10 @@ export const PROMOS: Promo[] = [
 ];
 
 export const DASHBOARD_STATS: DashboardStat[] = [
-  { label: "Total Anggota Aktif", value: "4", icon: "Users", tone: "primary", trend: { value: "+1 bulan ini", direction: "up" } },
-  { label: "Produksi Bulan Ini", value: "65 pcs", icon: "Boxes", tone: "secondary", trend: { value: "+12% dari bulan lalu", direction: "up" } },
-  { label: "Pesanan Baru", value: "5", icon: "ClipboardList", tone: "info", trend: { value: "2 menunggu diproses", direction: "down" } },
-  { label: "Saldo Kas Komunitas", value: "Rp 2.350.000", icon: "Wallet", tone: "success", trend: { value: "+Rp 235.000 minggu ini", direction: "up" } },
+  { label: "Total Produk", value: "75 Produk", icon: "ShoppingBag", tone: "secondary", trend: { value: "+5 produk baru", direction: "up" } },
+  { label: "Pendapatan", value: formatRupiah(5_600_000), icon: "Wallet", tone: "success", trend: { value: "+8% dari bulan lalu", direction: "up" } },
+  { label: "Pesanan Aktif", value: "12 Pesanan", icon: "ClipboardList", tone: "info", trend: { value: "4 menunggu diproses", direction: "down" } },
+  { label: "Anggota Aktif", value: "12 Anggota", icon: "Users", tone: "primary", trend: { value: "+2 anggota baru", direction: "up" } },
 ];
 
 export const PRODUCTION_TREND: ProductionTrendPoint[] = [
@@ -87,4 +93,41 @@ export const PRODUCTION_TREND: ProductionTrendPoint[] = [
   { bulan: "Jun", jumlah: 50 },
   { bulan: "Jul", jumlah: 58 },
   { bulan: "Ags", jumlah: 65 },
+];
+
+/** Data gabungan tren produksi (pcs) & penjualan (Rp) untuk grafik dashboard. */
+export const PRODUCTION_SALES_TREND: ProductionSalesPoint[] = [
+  { bulan: "Mar", produksi: 38, penjualan: 3_200_000 },
+  { bulan: "Apr", produksi: 42, penjualan: 3_550_000 },
+  { bulan: "Mei", produksi: 35, penjualan: 2_980_000 },
+  { bulan: "Jun", produksi: 50, penjualan: 4_300_000 },
+  { bulan: "Jul", produksi: 58, penjualan: 4_950_000 },
+  { bulan: "Ags", produksi: 65, penjualan: 5_600_000 },
+];
+
+export const MATERIAL_STOCK: MaterialStockItem[] = [
+  { id: "mat-1", name: "Benang Katun", quantity: 15, unit: "gulung", status: "aman" },
+  { id: "mat-2", name: "Benang Rajut", quantity: 9, unit: "gulung", status: "menipis" },
+  { id: "mat-3", name: "Aksesori Rajut", quantity: 7, unit: "gulung", status: "menipis" },
+];
+
+export const TOP_MEMBERS: TopMember[] = [
+  { id: "top-1", name: "Lina", role: "Perajin Senior", contribution: 28, unit: "pcs" },
+  { id: "top-2", name: "Sari", role: "Perajin", contribution: 22, unit: "pcs" },
+  { id: "top-3", name: "Andi", role: "Perajin", contribution: 18, unit: "pcs" },
+];
+
+export const RECENT_ACTIVITIES: ActivityItem[] = [
+  { id: "act-1", type: "produksi", message: "Sari menyelesaikan produksi 12 pcs Syal Rajut Motif Bunga.", timestamp: "2 jam lalu" },
+  { id: "act-2", type: "pesanan", message: "Pesanan baru INV-2026-0091 dari Melati Putri.", timestamp: "4 jam lalu" },
+  { id: "act-3", type: "produk", message: "Andi menambahkan produk baru: Dompet Rajut Mini.", timestamp: "6 jam lalu" },
+  { id: "act-4", type: "stok", message: "Stok Benang Rajut menipis, tersisa 9 gulung.", timestamp: "10 jam lalu" },
+  { id: "act-5", type: "anggota", message: "Lina mencatat 28 pcs produksi bulan ini, tertinggi di komunitas.", timestamp: "1 hari lalu" },
+];
+
+export const QUICK_ACTIONS: QuickAction[] = [
+  { id: "qa-1", key: "produksi", label: "Input Produksi", description: "Catat hasil produksi terbaru", href: "/produksi" },
+  { id: "qa-2", key: "anggota", label: "Tambah Anggota", description: "Daftarkan perajin baru", href: "/anggota" },
+  { id: "qa-3", key: "produk", label: "Tambah Produk", description: "Tambahkan produk ke katalog", href: "/produk" },
+  { id: "qa-4", key: "pesanan", label: "Buat Pesanan", description: "Buat pesanan pelanggan baru", href: "/pesanan" },
 ];
