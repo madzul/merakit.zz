@@ -5,17 +5,14 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { User, Lock, Eye, EyeOff, LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { login } from "@/lib/auth/actions";
 
 interface FormErrors {
   identifier?: string;
   password?: string;
+  general?: string;
 }
 
-/**
- * Form login MERAKIT.
- * Autentikasi masih simulasi: tidak ada pemanggilan database/backend.
- * Jika kedua field terisi, pengguna diarahkan ke /dashboard.
- */
 export function LoginForm() {
   const router = useRouter();
 
@@ -28,7 +25,7 @@ export function LoginForm() {
   function validate(): FormErrors {
     const nextErrors: FormErrors = {};
     if (!identifier.trim()) {
-      nextErrors.identifier = "Username atau email wajib diisi.";
+      nextErrors.identifier = "Email wajib diisi.";
     }
     if (!password) {
       nextErrors.password = "Password wajib diisi.";
@@ -36,7 +33,7 @@ export function LoginForm() {
     return nextErrors;
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const nextErrors = validate();
@@ -46,10 +43,16 @@ export function LoginForm() {
     }
 
     setIsSubmitting(true);
-    // Simulasi proses login — belum terhubung ke database/backend sungguhan.
-    window.setTimeout(() => {
-      router.push("/dashboard");
-    }, 600);
+    const result = await login({ email: identifier, password });
+
+    if (result.error) {
+      setErrors({ general: result.error });
+      setIsSubmitting(false);
+      return;
+    }
+
+    router.push("/dashboard");
+    router.refresh();
   }
 
   return (
@@ -57,26 +60,27 @@ export function LoginForm() {
       <h2 className="mb-5 text-lg font-semibold text-neutral-800">LOGIN</h2>
 
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+        {errors.general && (
+          <p role="alert" className="rounded-lg bg-danger-50 p-3 text-center text-sm text-danger-600">
+            {errors.general}
+          </p>
+        )}
+
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="identifier" className="sr-only">
-            Username atau Email
-          </label>
+          <label htmlFor="identifier" className="sr-only">Email</label>
           <div className="relative">
-            <User
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
-              aria-hidden="true"
-            />
+            <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" aria-hidden="true" />
             <input
               id="identifier"
               name="identifier"
-              type="text"
+              type="email"
               inputMode="email"
               autoComplete="username"
               value={identifier}
               onChange={(event) => setIdentifier(event.target.value)}
               aria-invalid={Boolean(errors.identifier)}
               aria-describedby={errors.identifier ? "identifier-error" : undefined}
-              placeholder="Username atau Email"
+              placeholder="Email"
               className={cn(
                 "w-full rounded-lg border bg-white py-2.5 pl-10 pr-3 text-sm text-neutral-800 placeholder:text-neutral-400 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500/40",
                 errors.identifier ? "border-danger-500" : "border-neutral-200 focus:border-primary-500"
@@ -84,21 +88,14 @@ export function LoginForm() {
             />
           </div>
           {errors.identifier && (
-            <p id="identifier-error" role="alert" className="text-xs text-danger-600">
-              {errors.identifier}
-            </p>
+            <p id="identifier-error" role="alert" className="text-xs text-danger-600">{errors.identifier}</p>
           )}
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="password" className="sr-only">
-            Password
-          </label>
+          <label htmlFor="password" className="sr-only">Password</label>
           <div className="relative">
-            <Lock
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
-              aria-hidden="true"
-            />
+            <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" aria-hidden="true" />
             <input
               id="password"
               name="password"
@@ -125,9 +122,7 @@ export function LoginForm() {
             </button>
           </div>
           {errors.password && (
-            <p id="password-error" role="alert" className="text-xs text-danger-600">
-              {errors.password}
-            </p>
+            <p id="password-error" role="alert" className="text-xs text-danger-600">{errors.password}</p>
           )}
         </div>
 
@@ -146,19 +141,9 @@ export function LoginForm() {
           )}
         </button>
 
-        <Link
-          href="/lupa-password"
-          className="text-center text-sm font-medium text-primary-700 hover:text-primary-800 hover:underline"
-        >
+        <Link href="/lupa-password" className="text-center text-sm font-medium text-primary-700 hover:text-primary-800 hover:underline">
           Lupa Password?
         </Link>
-
-        <p className="text-center text-sm text-neutral-500">
-          Belum punya akun?{" "}
-          <Link href="/daftar" className="font-semibold text-primary-700 hover:text-primary-800 hover:underline">
-            Buat akun baru
-          </Link>
-        </p>
       </form>
     </div>
   );

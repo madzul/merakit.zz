@@ -1,9 +1,11 @@
 "use client";
 
+import { useTransition } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, Bell, LogOut, ChevronRight } from "lucide-react";
+import { Menu, Bell, LogOut, LoaderCircle, ChevronRight } from "lucide-react";
 import { NAV_ITEMS } from "@/lib/navigation";
 import { CURRENT_USER } from "@/lib/mock-data";
+import { logout } from "@/lib/auth/actions";
 
 function useBreadcrumbLabel() {
   const pathname = usePathname();
@@ -15,6 +17,7 @@ function useBreadcrumbLabel() {
 
 export function DashboardHeader({ onMenuClick }: { onMenuClick: () => void }) {
   const currentLabel = useBreadcrumbLabel();
+  const [isLoggingOut, startLogoutTransition] = useTransition();
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-neutral-200 bg-white/90 px-4 backdrop-blur sm:px-6">
@@ -50,8 +53,17 @@ export function DashboardHeader({ onMenuClick }: { onMenuClick: () => void }) {
           </div>
         </div>
 
-        <button aria-label="Keluar" className="rounded-md p-2 text-neutral-500 hover:bg-danger-50 hover:text-danger-600">
-          <LogOut className="h-5 w-5" />
+        <button
+          aria-label="Keluar"
+          disabled={isLoggingOut}
+          onClick={() => startLogoutTransition(() => logout())}
+          className="rounded-md p-2 text-neutral-500 hover:bg-danger-50 hover:text-danger-600 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isLoggingOut ? (
+            <LoaderCircle className="h-5 w-5 animate-spin" aria-hidden="true" />
+          ) : (
+            <LogOut className="h-5 w-5" />
+          )}
         </button>
       </div>
     </header>
