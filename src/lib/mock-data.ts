@@ -1,5 +1,4 @@
 import type {
-  CurrentUser,
   ProductionRecord,
   Member,
   ProductListItem,
@@ -18,14 +17,6 @@ import type {
   QuickAction,
 } from "@/lib/types";
 import { formatRupiah } from "@/lib/utils";
-
-export const CURRENT_USER: CurrentUser = {
-  id: "usr-001",
-  name: "Bu Sri Wahyuni",
-  role: "admin",
-  avatarInitial: "SW",
-  email: "sri.wahyuni@merakit.id",
-};
 
 export const PRODUCTION_RECORDS: ProductionRecord[] = [
   { id: "prod-1", productionDate: "2026-08-20", memberName: "Rina Marlina", productName: "Syal Rajut Motif Bunga", quantity: 12, duration: 4, status: "selesai", notes: "Batch reguler, kualitas benang katun." },

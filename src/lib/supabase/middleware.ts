@@ -2,19 +2,14 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Seluruh route di dalam grup (dashboard) — hanya boleh diakses setelah login.
-const PROTECTED_PATHS = [
-  "/dashboard",
-  "/produksi",
-  "/anggota",
-  "/produk",
-  "/pesanan",
-  "/keuangan",
-  "/pemasaran",
-  "/promo",
-];
+const PROTECTED_PATHS = ["/dashboard", "/produksi", "/keuangan", "/pemasaran", "/promo"];
 
-function isProtectedPath(pathname: string) {
-  return PROTECTED_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+// Route yang hanya boleh diakses oleh role "admin" (selaras dengan RLS di
+// database-schema.sql: tabel members & expenses admin-only untuk anggota).
+const ADMIN_ONLY_PATHS = ["/dashboard/anggota", "/keuangan"];
+
+function matchesPath(paths: string[], pathname: string) {
+  return paths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
 export async function updateSession(request: NextRequest) {
@@ -47,11 +42,31 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  if (!user && isProtectedPath(pathname)) {
+  if (!user && matchesPath(PROTECTED_PATHS, pathname)) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("redirectTo", pathname);
     return NextResponse.redirect(redirectUrl);
+  }
+
+  // Proteksi route admin-only di sisi server: seorang "anggota" yang login
+  // tetap tidak boleh membuka /dashboard/anggota atau /keuangan langsung lewat
+  // URL, meski item menu ini sudah disembunyikan di sidebar untuk role
+  // tersebut. RLS di database tetap jadi lapisan pertahanan utama; ini
+  // lapisan kedua supaya anggota non-admin tidak melihat UI-nya sama sekali.
+  if (user && matchesPath(ADMIN_ONLY_PATHS, pathname)) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profile?.role !== "admin") {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/dashboard";
+      redirectUrl.search = "";
+      return NextResponse.redirect(redirectUrl);
+    }
   }
 
   if (user && pathname === "/login") {

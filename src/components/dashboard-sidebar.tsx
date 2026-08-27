@@ -6,6 +6,7 @@ import { Sparkles } from "lucide-react";
 import { NAV_ITEMS } from "@/lib/navigation";
 import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import type { UserRole } from "@/lib/types";
 
 function BrandMark() {
   return (
@@ -21,12 +22,16 @@ function BrandMark() {
   );
 }
 
-function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+function SidebarNav({ onNavigate, role }: { onNavigate?: () => void; role?: UserRole }) {
   const pathname = usePathname();
+
+  // Sembunyikan menu khusus admin (mis. Anggota, Keuangan) dari role "anggota",
+  // selaras dengan kebijakan RLS di database (lihat database-schema.sql).
+  const visibleItems = NAV_ITEMS.filter((item) => !item.adminOnly || role === "admin");
 
   // Pilih item nav dengan kecocokan prefix terpanjang, agar mis. "/dashboard"
   // tidak ikut aktif ketika pathname sebenarnya "/dashboard/anggota".
-  const activeHref = NAV_ITEMS.reduce<string | null>((longest, item) => {
+  const activeHref = visibleItems.reduce<string | null>((longest, item) => {
     const matches = pathname === item.href || pathname.startsWith(`${item.href}/`);
     if (!matches) return longest;
     if (!longest || item.href.length > longest.length) return item.href;
@@ -35,7 +40,7 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <nav className="flex flex-col gap-1 px-3">
-      {NAV_ITEMS.map((item) => {
+      {visibleItems.map((item) => {
         const isActive = item.href === activeHref;
         const Icon = item.icon;
         return (
@@ -59,11 +64,11 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-export function DashboardSidebar() {
+export function DashboardSidebar({ role }: { role?: UserRole }) {
   return (
     <aside className="hidden lg:flex lg:w-64 lg:flex-shrink-0 lg:flex-col lg:border-r lg:border-neutral-200 lg:bg-white">
       <BrandMark />
-      <SidebarNav />
+      <SidebarNav role={role} />
       <div className="mt-auto p-4">
         <div className="rounded-lg bg-secondary-50 p-3 text-xs text-neutral-600">
           Komunitas rajut inklusif untuk semua. 🧶
@@ -76,14 +81,16 @@ export function DashboardSidebar() {
 export function MobileSidebar({
   open,
   onOpenChange,
+  role,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  role?: UserRole;
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange} title="Menu navigasi">
       <BrandMark />
-      <SidebarNav onNavigate={() => onOpenChange(false)} />
+      <SidebarNav onNavigate={() => onOpenChange(false)} role={role} />
     </Sheet>
   );
 }

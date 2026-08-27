@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { AlertTriangle, LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,16 +32,47 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+
   useEffect(() => {
     if (!open) return;
+    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+    // Fokus ke tombol "Batal" secara default — lebih aman untuk dialog
+    // destruktif dibanding auto-fokus ke tombol konfirmasi.
+    cancelButtonRef.current?.focus();
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !loading) onCancel();
+      if (e.key === "Escape" && !loading) {
+        onCancel();
+        return;
+      }
+      // Focus trap sederhana: siklus Tab tetap di dalam dialog.
+      if (e.key === "Tab") {
+        const dialogEl = document.getElementById("confirm-dialog-panel");
+        if (!dialogEl) return;
+        const focusable = dialogEl.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
+      // Kembalikan fokus ke elemen pemicu dialog saat ditutup.
+      previouslyFocusedRef.current?.focus();
     };
   }, [open, loading, onCancel]);
 
@@ -55,6 +86,7 @@ export function ConfirmDialog({
         aria-hidden="true"
       />
       <div
+        id="confirm-dialog-panel"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
@@ -80,6 +112,7 @@ export function ConfirmDialog({
         <div className="mt-5 flex items-center justify-end gap-2">
           <button
             type="button"
+            ref={cancelButtonRef}
             onClick={onCancel}
             disabled={loading}
             className="rounded-lg border border-neutral-200 px-3.5 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"

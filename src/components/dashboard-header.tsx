@@ -4,8 +4,14 @@ import { useTransition } from "react";
 import { usePathname } from "next/navigation";
 import { Menu, Bell, LogOut, LoaderCircle, ChevronRight } from "lucide-react";
 import { NAV_ITEMS } from "@/lib/navigation";
-import { CURRENT_USER } from "@/lib/mock-data";
 import { logout } from "@/lib/auth/actions";
+import type { UserRole } from "@/lib/types";
+
+export interface HeaderProfile {
+  name: string;
+  role: UserRole;
+  avatarInitial: string;
+}
 
 function useBreadcrumbLabel() {
   const pathname = usePathname();
@@ -15,7 +21,14 @@ function useBreadcrumbLabel() {
   return current?.label ?? "Dashboard";
 }
 
-export function DashboardHeader({ onMenuClick }: { onMenuClick: () => void }) {
+export function DashboardHeader({
+  onMenuClick,
+  profile,
+}: {
+  onMenuClick: () => void;
+  /** Profil pengguna yang sedang login (dari Supabase), null selagi dimuat. */
+  profile: HeaderProfile | null;
+}) {
   const currentLabel = useBreadcrumbLabel();
   const [isLoggingOut, startLogoutTransition] = useTransition();
 
@@ -44,12 +57,15 @@ export function DashboardHeader({ onMenuClick }: { onMenuClick: () => void }) {
         <div className="mx-1 hidden h-8 w-px bg-neutral-200 sm:block" />
 
         <div className="flex items-center gap-2 rounded-md px-1.5 py-1 sm:px-2">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
-            {CURRENT_USER.avatarInitial}
+          <div
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700"
+            aria-hidden="true"
+          >
+            {profile?.avatarInitial ?? "…"}
           </div>
           <div className="hidden leading-tight sm:block">
-            <p className="text-sm font-medium text-neutral-800">{CURRENT_USER.name}</p>
-            <p className="text-xs capitalize text-neutral-500">{CURRENT_USER.role}</p>
+            <p className="text-sm font-medium text-neutral-800">{profile?.name ?? "Memuat…"}</p>
+            <p className="text-xs capitalize text-neutral-500">{profile?.role ?? ""}</p>
           </div>
         </div>
 

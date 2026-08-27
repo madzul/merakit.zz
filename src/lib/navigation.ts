@@ -13,10 +13,10 @@ import type { NavItem } from "@/lib/types";
 export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Data Produksi", href: "/produksi", icon: Boxes },
-  { label: "Anggota", href: "/dashboard/anggota", icon: Users },
+  { label: "Anggota", href: "/dashboard/anggota", icon: Users, adminOnly: true },
   { label: "Produk", href: "/dashboard/produk", icon: ShoppingBag },
   { label: "Pesanan", href: "/dashboard/pesanan", icon: ClipboardList },
-  { label: "Keuangan", href: "/keuangan", icon: Wallet },
+  { label: "Keuangan", href: "/keuangan", icon: Wallet, adminOnly: true },
   { label: "Pemasaran", href: "/pemasaran", icon: Megaphone },
   { label: "Promo & Diskon", href: "/promo", icon: BadgePercent },
 ];

@@ -2,18 +2,12 @@ import type { LucideIcon } from "lucide-react";
 
 export type UserRole = "admin" | "anggota";
 
-export interface CurrentUser {
-  id: string;
-  name: string;
-  role: UserRole;
-  avatarInitial: string;
-  email: string;
-}
-
 export interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
+  /** Jika true, item hanya ditampilkan & diizinkan untuk role "admin". */
+  adminOnly?: boolean;
 }
 
 export type StatCardTone =

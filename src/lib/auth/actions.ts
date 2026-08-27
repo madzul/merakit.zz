@@ -4,6 +4,23 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
+/**
+ * Origin tepercaya untuk tautan reset password. Diambil dari
+ * NEXT_PUBLIC_SITE_URL bila diset; jika tidak, jatuh ke header Host permintaan
+ * (aman untuk lingkungan dev tanpa proxy, tapi header Host bisa dipalsukan
+ * klien pada sebagian setup — set NEXT_PUBLIC_SITE_URL di produksi agar tautan
+ * reset password tidak bisa "diracuni" ke domain lain).
+ */
+async function getTrustedOrigin(): Promise<string> {
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
+  }
+  const headersList = await headers();
+  const host = headersList.get("host");
+  const protocol = process.env.NODE_ENV === "development" ? "http" : "https";
+  return `${protocol}://${host}`;
+}
+
 type ActionResult = { error?: string; success?: boolean };
 
 function mapAuthError(message: string): string {
@@ -40,13 +57,7 @@ export async function logout(): Promise<void> {
 /** Kirim email tautan reset password. */
 export async function requestPasswordReset(input: { email: string }): Promise<ActionResult> {
   const supabase = await createClient();
-
-  // Ambil origin dari header request agar tidak perlu env var tambahan
-  // di luar NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY.
-  const headersList = await headers();
-  const host = headersList.get("host");
-  const protocol = process.env.NODE_ENV === "development" ? "http" : "https";
-  const origin = `${protocol}://${host}`;
+  const origin = await getTrustedOrigin();
 
   const { error } = await supabase.auth.resetPasswordForEmail(input.email, {
     redirectTo: `${origin}/auth/confirm?next=/reset-password`,
