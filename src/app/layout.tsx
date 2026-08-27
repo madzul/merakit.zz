@@ -1,8 +1,17 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+// Font Inter di-self-host (bukan next/font/google) agar proses build tidak
+// bergantung pada koneksi keluar ke fonts.googleapis.com saat build time —
+// penting di lingkungan CI/sandbox dengan akses jaringan terbatas. Berkas
+// variable font (subset latin) diambil dari paket @fontsource-variable/inter.
+const inter = localFont({
+  src: "./fonts/Inter-Variable.woff2",
+  variable: "--font-inter",
+  weight: "100 900",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "MERAKIT — Merajut Asa Kita",
