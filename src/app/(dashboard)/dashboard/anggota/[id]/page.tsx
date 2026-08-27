@@ -1,17 +1,38 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
 import { MemberDetail } from "@/components/anggota/member-detail";
-import { getMemberById } from "@/lib/member-store";
+import { getCurrentMemberId, getMemberById } from "@/lib/supabase/repositories/members-repository";
+import { getCurrentProfile } from "@/lib/supabase/repositories/profiles-repository";
 
 interface AnggotaDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
+/**
+ * Detail (& untuk anggota biasa: profil) satu anggota. RLS
+ * members_select_admin_or_own di database sudah membatasi baris yang bisa
+ * diambil — anggota biasa yang mencoba membuka id milik orang lain akan
+ * mendapat `null` dari getMemberById (bukan galat), sehingga tampil sebagai
+ * "tidak ditemukan" alih-alih membocorkan info bahwa data itu ada.
+ */
 export default async function AnggotaDetailPage({ params }: AnggotaDetailPageProps) {
   const { id } = await params;
-  const member = getMemberById(id);
+
+  const profile = await getCurrentProfile();
+  if (!profile) {
+    redirect("/login");
+  }
+
+  const isAdmin = profile.role === "admin";
+  const [member, ownMemberId] = await Promise.all([
+    getMemberById(id),
+    isAdmin ? Promise.resolve(null) : getCurrentMemberId(),
+  ]);
+
+  const canEdit = isAdmin || ownMemberId === id;
 
   return (
     <div>
@@ -30,7 +51,7 @@ export default async function AnggotaDetailPage({ params }: AnggotaDetailPagePro
       />
 
       {member ? (
-        <MemberDetail member={member} />
+        <MemberDetail member={member} isAdmin={isAdmin} canEdit={canEdit} />
       ) : (
         <EmptyState message="Data anggota tidak ditemukan. Mungkin sudah dihapus atau tautan tidak valid." />
       )}

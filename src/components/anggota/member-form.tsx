@@ -5,12 +5,21 @@ import { useState, type FormEvent } from "react";
 import { LoaderCircle, Save, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MEMBER_STATUS_OPTIONS } from "@/lib/member-status";
-import { addMember, updateMember } from "@/lib/member-store";
+import { createMemberAction, updateMemberAction, updateOwnMemberAction } from "@/lib/anggota/actions";
 import type { Member, MemberStatus } from "@/lib/types";
 
 interface MemberFormProps {
   /** Jika diisi, form berjalan dalam mode edit untuk anggota ini. */
   member?: Member;
+  /**
+   * "admin" (default): semua field bisa diisi/diubah, dipakai untuk tambah
+   * anggota baru atau admin mengedit anggota mana pun.
+   * "self": anggota biasa mengedit profilnya sendiri — hanya field Nama &
+   * Nomor Telepon yang ditampilkan; status keanggotaan, tanggal bergabung,
+   * dan catatan pendampingan (data sensitif) tetap dari data lama, tidak
+   * bisa diubah lewat mode ini (ditegakkan juga di updateOwnMemberAction).
+   */
+  mode?: "admin" | "self";
 }
 
 interface FormValues {
@@ -64,11 +73,14 @@ const inputClassName =
   "w-full rounded-lg border bg-white py-2.5 px-3 text-sm text-neutral-800 placeholder:text-neutral-400 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500/40";
 
 /**
- * Form tambah/edit anggota. Field "Keterangan kebutuhan dukungan" & "Catatan"
- * bersifat sensitif — form ini hanya dipakai di area admin (dashboard di
- * balik login), gunakan bahasa yang hormat dan tidak stigmatis saat mengisi.
+ * Form tambah/edit anggota. Mode "admin" (tambah baru / edit siapa saja)
+ * menampilkan seluruh field, termasuk "Keterangan kebutuhan dukungan" &
+ * "Catatan" yang bersifat sensitif — gunakan bahasa yang hormat dan tidak
+ * stigmatis saat mengisi. Mode "self" (anggota biasa mengedit profilnya
+ * sendiri) menyembunyikan field sensitif/administratif tersebut.
  */
-export function MemberForm({ member }: MemberFormProps) {
+export function MemberForm({ member, mode = "admin" }: MemberFormProps) {
+  const isSelfMode = mode === "self";
   const router = useRouter();
   const isEditMode = Boolean(member);
 
@@ -104,7 +116,7 @@ export function MemberForm({ member }: MemberFormProps) {
     return nextErrors;
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitError(null);
 
@@ -116,32 +128,43 @@ export function MemberForm({ member }: MemberFormProps) {
 
     setIsSubmitting(true);
 
-    const payload = {
-      name: values.name.trim(),
-      phone: values.phone.replace(/\D/g, ""),
-      avatar: member?.avatar ?? initialsFromName(values.name),
-      disabilityDescription: values.disabilityDescription.trim(),
-      monthlyProduction: member?.monthlyProduction ?? 0,
-      status: values.status,
-      joinedAt: values.joinedAt,
-      notes: values.notes.trim(),
-    };
+    const name = values.name.trim();
+    const phone = values.phone.replace(/\D/g, "");
+    const avatar = member?.avatar ?? initialsFromName(values.name);
 
-    // Simulasi proses penyimpanan — data dummy, belum terhubung backend/database.
-    window.setTimeout(() => {
-      if (isEditMode && member) {
-        const updated = updateMember(member.id, payload);
-        if (!updated) {
-          setIsSubmitting(false);
-          setSubmitError("Data anggota tidak ditemukan. Mungkin sudah dihapus.");
-          return;
-        }
-        router.push("/dashboard/anggota?toast=updated");
-      } else {
-        addMember(payload);
-        router.push("/dashboard/anggota?toast=created");
-      }
-    }, 600);
+    const result =
+      isEditMode && member
+        ? isSelfMode
+          ? await updateOwnMemberAction(member.id, { name, phone, avatar }, member)
+          : await updateMemberAction(member.id, {
+              name,
+              phone,
+              avatar,
+              disabilityDescription: values.disabilityDescription.trim(),
+              monthlyProduction: member.monthlyProduction,
+              status: values.status,
+              joinedAt: values.joinedAt,
+              notes: values.notes.trim(),
+            })
+        : await createMemberAction({
+            name,
+            phone,
+            avatar,
+            disabilityDescription: values.disabilityDescription.trim(),
+            monthlyProduction: 0,
+            status: values.status,
+            joinedAt: values.joinedAt,
+            notes: values.notes.trim(),
+          });
+
+    if (result.error) {
+      setIsSubmitting(false);
+      setSubmitError(result.error);
+      return;
+    }
+
+    router.push(isEditMode ? "/dashboard/anggota?toast=updated" : "/dashboard/anggota?toast=created");
+    router.refresh();
   }
 
   return (
@@ -182,61 +205,76 @@ export function MemberForm({ member }: MemberFormProps) {
           />
         </Field>
 
-        <Field label="Status" htmlFor="status">
-          <select
-            id="status"
-            value={values.status}
-            onChange={(event) => setField("status", event.target.value as MemberStatus)}
-            className={cn(inputClassName, "pr-8 border-neutral-200 focus:border-primary-500")}
-          >
-            {MEMBER_STATUS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </Field>
+        {!isSelfMode && (
+          <>
+            <Field label="Status" htmlFor="status">
+              <select
+                id="status"
+                value={values.status}
+                onChange={(event) => setField("status", event.target.value as MemberStatus)}
+                className={cn(inputClassName, "pr-8 border-neutral-200 focus:border-primary-500")}
+              >
+                {MEMBER_STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
 
-        <Field label="Tanggal Bergabung" htmlFor="joinedAt" error={errors.joinedAt}>
-          <input
-            id="joinedAt"
-            type="date"
-            value={values.joinedAt}
-            onChange={(event) => setField("joinedAt", event.target.value)}
-            aria-invalid={Boolean(errors.joinedAt)}
-            className={cn(
-              inputClassName,
-              errors.joinedAt ? "border-danger-500" : "border-neutral-200 focus:border-primary-500"
-            )}
-          />
-        </Field>
+            <Field label="Tanggal Bergabung" htmlFor="joinedAt" error={errors.joinedAt}>
+              <input
+                id="joinedAt"
+                type="date"
+                value={values.joinedAt}
+                onChange={(event) => setField("joinedAt", event.target.value)}
+                aria-invalid={Boolean(errors.joinedAt)}
+                className={cn(
+                  inputClassName,
+                  errors.joinedAt ? "border-danger-500" : "border-neutral-200 focus:border-primary-500"
+                )}
+              />
+            </Field>
+          </>
+        )}
       </div>
 
-      <Field
-        label="Keterangan Kebutuhan Dukungan (opsional)"
-        htmlFor="disabilityDescription"
-        hint="Bersifat internal & sensitif — hanya terlihat di area admin. Gunakan bahasa yang hormat dan tidak stigmatis, fokus pada kebutuhan dukungan."
-      >
-        <textarea
-          id="disabilityDescription"
-          rows={3}
-          value={values.disabilityDescription}
-          onChange={(event) => setField("disabilityDescription", event.target.value)}
-          placeholder="mis. Menggunakan kursi roda; membutuhkan meja kerja yang disesuaikan."
-          className={cn(inputClassName, "resize-none border-neutral-200 focus:border-primary-500")}
-        />
-      </Field>
+      {isSelfMode && (
+        <p className="rounded-lg bg-primary-50 px-3 py-2 text-xs text-primary-700">
+          Anda hanya dapat mengubah nama & nomor telepon/WhatsApp sendiri. Status keanggotaan dan
+          catatan pendampingan dikelola oleh admin.
+        </p>
+      )}
 
-      <Field label="Catatan Pendampingan (opsional)" htmlFor="notes">
-        <textarea
-          id="notes"
-          rows={3}
-          value={values.notes}
-          onChange={(event) => setField("notes", event.target.value)}
-          placeholder="Catatan pengurus/pendamping mengenai anggota ini..."
-          className={cn(inputClassName, "resize-none border-neutral-200 focus:border-primary-500")}
-        />
-      </Field>
+      {!isSelfMode && (
+        <>
+          <Field
+            label="Keterangan Kebutuhan Dukungan (opsional)"
+            htmlFor="disabilityDescription"
+            hint="Bersifat internal & sensitif — hanya terlihat di area admin. Gunakan bahasa yang hormat dan tidak stigmatis, fokus pada kebutuhan dukungan."
+          >
+            <textarea
+              id="disabilityDescription"
+              rows={3}
+              value={values.disabilityDescription}
+              onChange={(event) => setField("disabilityDescription", event.target.value)}
+              placeholder="mis. Menggunakan kursi roda; membutuhkan meja kerja yang disesuaikan."
+              className={cn(inputClassName, "resize-none border-neutral-200 focus:border-primary-500")}
+            />
+          </Field>
+
+          <Field label="Catatan Pendampingan (opsional)" htmlFor="notes">
+            <textarea
+              id="notes"
+              rows={3}
+              value={values.notes}
+              onChange={(event) => setField("notes", event.target.value)}
+              placeholder="Catatan pengurus/pendamping mengenai anggota ini..."
+              className={cn(inputClassName, "resize-none border-neutral-200 focus:border-primary-500")}
+            />
+          </Field>
+        </>
+      )}
 
       <div className="flex flex-col-reverse gap-2 border-t border-neutral-100 pt-5 sm:flex-row sm:justify-end">
         <button

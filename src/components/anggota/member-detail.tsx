@@ -12,14 +12,25 @@ import type { Member } from "@/lib/types";
 
 interface MemberDetailProps {
   member: Member;
+  /** True jika viewer boleh mengedit profil ini (admin, atau ini profilnya sendiri). */
+  canEdit?: boolean;
+  /**
+   * True hanya untuk role admin. Mengontrol tampil/tidaknya bagian "Catatan
+   * Pendampingan (Internal)" — data sensitif (lihat catatan privasi pada
+   * tipe `Member`) yang TETAP disembunyikan dari anggota biasa walau sedang
+   * melihat profilnya sendiri.
+   */
+  isAdmin?: boolean;
 }
 
 /**
- * Detail anggota. Bagian "Catatan Pendampingan (Internal)" berisi keterangan
- * kebutuhan dukungan yang sensitif — komponen ini hanya dipakai di area
- * admin (dashboard di balik login), tidak untuk halaman publik.
+ * Detail anggota. Dipakai baik oleh admin (melihat siapa saja) maupun
+ * anggota biasa (hanya bisa sampai di sini untuk profilnya sendiri — dibatasi
+ * RLS members_select_admin_or_own). Bagian "Catatan Pendampingan (Internal)"
+ * berisi keterangan kebutuhan dukungan yang sensitif — selalu disembunyikan
+ * dari non-admin, siapa pun subjeknya.
  */
-export function MemberDetail({ member }: MemberDetailProps) {
+export function MemberDetail({ member, canEdit = false, isAdmin = false }: MemberDetailProps) {
   const productionHistory = useMemo(
     () =>
       PRODUCTION_RECORDS.filter((record) => record.memberName === member.name).sort((a, b) =>
@@ -91,13 +102,15 @@ export function MemberDetail({ member }: MemberDetailProps) {
               <MessageCircle className="h-4 w-4" aria-hidden="true" />
               WhatsApp
             </a>
-            <Link
-              href={`/dashboard/anggota/tambah?id=${member.id}`}
-              className="flex items-center gap-1.5 rounded-lg bg-primary-700 px-3.5 py-2 text-sm font-semibold text-white hover:bg-primary-800"
-            >
-              <Pencil className="h-4 w-4" aria-hidden="true" />
-              Edit
-            </Link>
+            {canEdit && (
+              <Link
+                href={`/dashboard/anggota/tambah?id=${member.id}`}
+                className="flex items-center gap-1.5 rounded-lg bg-primary-700 px-3.5 py-2 text-sm font-semibold text-white hover:bg-primary-800"
+              >
+                <Pencil className="h-4 w-4" aria-hidden="true" />
+                Edit
+              </Link>
+            )}
           </div>
         </div>
       </div>
@@ -167,25 +180,27 @@ export function MemberDetail({ member }: MemberDetailProps) {
         )}
       </div>
 
-      {/* Catatan pendampingan — internal/admin */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-card sm:p-6">
-        <h3 className="text-sm font-semibold text-neutral-800">Catatan Pendampingan (Internal)</h3>
-        <p className="mt-1 text-xs text-neutral-400">
-          Informasi berikut sensitif dan hanya terlihat oleh admin/pengurus, tidak ditampilkan pada halaman publik.
-        </p>
-        <div className="mt-3 space-y-3 text-sm text-neutral-600">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">
-              Keterangan Kebutuhan Dukungan
-            </p>
-            <p className="mt-1">{member.disabilityDescription || "Tidak ada keterangan khusus."}</p>
-          </div>
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Catatan</p>
-            <p className="mt-1">{member.notes || "Belum ada catatan pendampingan."}</p>
+      {/* Catatan pendampingan — internal/admin, disembunyikan dari anggota biasa */}
+      {isAdmin && (
+        <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-card sm:p-6">
+          <h3 className="text-sm font-semibold text-neutral-800">Catatan Pendampingan (Internal)</h3>
+          <p className="mt-1 text-xs text-neutral-400">
+            Informasi berikut sensitif dan hanya terlihat oleh admin/pengurus, tidak ditampilkan pada halaman publik.
+          </p>
+          <div className="mt-3 space-y-3 text-sm text-neutral-600">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">
+                Keterangan Kebutuhan Dukungan
+              </p>
+              <p className="mt-1">{member.disabilityDescription || "Tidak ada keterangan khusus."}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Catatan</p>
+              <p className="mt-1">{member.notes || "Belum ada catatan pendampingan."}</p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

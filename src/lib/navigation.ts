@@ -13,7 +13,10 @@ import type { NavItem } from "@/lib/types";
 export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Data Produksi", href: "/produksi", icon: Boxes },
-  { label: "Anggota", href: "/dashboard/anggota", icon: Users, adminOnly: true },
+  // Tidak lagi adminOnly: anggota tetap bisa membuka menu ini untuk melihat
+  // & mengedit profilnya sendiri (di-redirect otomatis ke halaman detailnya
+  // sendiri); hanya admin yang melihat daftar lengkap semua anggota.
+  { label: "Anggota", href: "/dashboard/anggota", icon: Users },
   { label: "Produk", href: "/dashboard/produk", icon: ShoppingBag },
   { label: "Pesanan", href: "/dashboard/pesanan", icon: ClipboardList },
   { label: "Keuangan", href: "/keuangan", icon: Wallet, adminOnly: true },

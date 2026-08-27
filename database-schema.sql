@@ -193,13 +193,19 @@ create policy "profiles_update_own_or_admin" on public.profiles
 create policy "profiles_delete_admin_only" on public.profiles
   for delete using (public.is_admin());
 
--- members: admin kelola semua; anggota hanya baca datanya sendiri.
+-- members: admin kelola semua (tambah/ubah/hapus); anggota hanya boleh
+-- membaca & mengubah datanya sendiri (profile_id = auth.uid()) — tidak boleh
+-- menambah anggota baru maupun menghapus data apa pun. Penegakan field mana
+-- saja yang boleh diubah anggota (mis. tidak termasuk status keanggotaan atau
+-- catatan pendampingan internal) dilakukan di lapisan aplikasi
+-- (src/lib/anggota/actions.ts + mode "self" pada MemberForm), bukan di RLS.
 create policy "members_select_admin_or_own" on public.members
   for select using (public.is_admin() or profile_id = auth.uid());
 create policy "members_insert_admin_only" on public.members
   for insert with check (public.is_admin());
-create policy "members_update_admin_only" on public.members
-  for update using (public.is_admin());
+create policy "members_update_admin_or_own" on public.members
+  for update using (public.is_admin() or profile_id = auth.uid())
+  with check (public.is_admin() or profile_id = auth.uid());
 create policy "members_delete_admin_only" on public.members
   for delete using (public.is_admin());
 

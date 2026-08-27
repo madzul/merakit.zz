@@ -5,8 +5,12 @@ import { NextResponse, type NextRequest } from "next/server";
 const PROTECTED_PATHS = ["/dashboard", "/produksi", "/keuangan", "/pemasaran", "/promo"];
 
 // Route yang hanya boleh diakses oleh role "admin" (selaras dengan RLS di
-// database-schema.sql: tabel members & expenses admin-only untuk anggota).
-const ADMIN_ONLY_PATHS = ["/dashboard/anggota", "/keuangan"];
+// database-schema.sql). "/dashboard/anggota" TIDAK lagi di sini — anggota
+// biasa boleh membuka menu ini untuk melihat/mengedit profilnya sendiri
+// (lihat pengecekan khusus rute "tambah" di bawah, dan RLS
+// members_select_admin_or_own / members_update_admin_or_own untuk
+// pembatasan datanya).
+const ADMIN_ONLY_PATHS = ["/keuangan"];
 
 function matchesPath(paths: string[], pathname: string) {
   return paths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
@@ -49,12 +53,19 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
+  // "Tambah Anggota" (form tanpa query "id") hanya untuk admin. Form yang
+  // sama dipakai juga untuk mode edit (?id=...) — termasuk anggota mengedit
+  // profilnya sendiri — jadi TIDAK diblokir di sini; pengecekan kepemilikan
+  // datanya dilakukan di halaman itu sendiri (fetch by id sudah dibatasi RLS
+  // members_select_admin_or_own, ditambah pengecekan eksplisit di server).
+  const isAddMemberPath = pathname === "/dashboard/anggota/tambah" && !request.nextUrl.searchParams.has("id");
+
   // Proteksi route admin-only di sisi server: seorang "anggota" yang login
-  // tetap tidak boleh membuka /dashboard/anggota atau /keuangan langsung lewat
-  // URL, meski item menu ini sudah disembunyikan di sidebar untuk role
+  // tetap tidak boleh membuka /keuangan atau menambah anggota baru langsung
+  // lewat URL, meski item/tombolnya sudah disembunyikan di UI untuk role
   // tersebut. RLS di database tetap jadi lapisan pertahanan utama; ini
   // lapisan kedua supaya anggota non-admin tidak melihat UI-nya sama sekali.
-  if (user && matchesPath(ADMIN_ONLY_PATHS, pathname)) {
+  if (user && (matchesPath(ADMIN_ONLY_PATHS, pathname) || isAddMemberPath)) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
@@ -63,7 +74,7 @@ export async function updateSession(request: NextRequest) {
 
     if (profile?.role !== "admin") {
       const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = "/dashboard";
+      redirectUrl.pathname = isAddMemberPath ? "/dashboard/anggota" : "/dashboard";
       redirectUrl.search = "";
       return NextResponse.redirect(redirectUrl);
     }
