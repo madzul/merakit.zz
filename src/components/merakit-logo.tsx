@@ -1,3 +1,5 @@
+import { Icon } from "lucide-react";
+import { yarnBall } from "@lucide/lab";
 import { cn } from "@/lib/utils";
 
 interface MerakitLogoProps {
@@ -24,56 +26,22 @@ const TAGLINE_SIZE: Record<NonNullable<MerakitLogoProps["size"]>, string> = {
 };
 
 /**
- * Lambang/placeholder logo MERAKIT — ilustrasi gulungan benang & jarum rajut,
- * mengikuti referensi screenshot desain (skrinshoot_sistem_merakit.pdf).
- * Komponen berdiri sendiri (tidak dipakai dashboard-sidebar.tsx), sehingga
- * penyesuaian visualnya tidak mengubah tampilan dashboard yang sudah ada.
+ * Lambang logo MERAKIT — ikon gulungan benang (yarnBall) dari @lucide/lab,
+ * dipakai konsisten dengan ikon Lucide lain di seluruh aplikasi (lihat
+ * src/lib/navigation.ts). Ikon lab ini monokrom (stroke tunggal, ikut warna
+ * teks lewat currentColor) — beda dari ilustrasi multi-warna versi
+ * sebelumnya, jadi warnanya diatur lewat kelas Tailwind (text-primary-600)
+ * bukan hardcode di dalam SVG.
  */
 export function MerakitLogo({ size = "sm", showWordmark = true, className }: MerakitLogoProps) {
   return (
     <div className={cn("flex flex-col items-center", className)}>
-      <svg
-        viewBox="0 0 64 56"
-        className={cn("flex-shrink-0", MARK_SIZE[size])}
-        role="img"
+      <Icon
+        iconNode={yarnBall}
+        className={cn("flex-shrink-0 text-primary-600", MARK_SIZE[size])}
+        strokeWidth={1.75}
         aria-label="Logo MERAKIT"
-      >
-        {/* Jarum rajut menyilang */}
-        <line x1="12" y1="48" x2="43" y2="8" stroke="#4B4B48" strokeWidth="2.5" strokeLinecap="round" />
-        <circle cx="43" cy="8" r="2.6" fill="#3F9686" />
-        <line x1="52" y1="48" x2="21" y2="8" stroke="#4B4B48" strokeWidth="2.5" strokeLinecap="round" />
-        <circle cx="21" cy="8" r="2.6" fill="#C2A05F" />
-
-        {/* Gulungan benang */}
-        <circle cx="32" cy="38" r="17" fill="#8D7CB8" />
-        <path
-          d="M17 34c6 8 24 8 30 0"
-          fill="none"
-          stroke="#6E5DA0"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          opacity="0.55"
-        />
-        <path
-          d="M18 42c7 6 21 6 28 0"
-          fill="none"
-          stroke="#6E5DA0"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          opacity="0.4"
-        />
-        <path
-          d="M22 24c4-2 16-2 20 0"
-          fill="none"
-          stroke="#6E5DA0"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          opacity="0.45"
-        />
-
-        {/* Aksen daun */}
-        <path d="M41 46c4-2 6-6 4-10-4 2-6 6-4 10z" fill="#62B0A0" />
-      </svg>
+      />
 
       {showWordmark && (
         <div className="mt-2 text-center">

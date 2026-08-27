@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sparkles } from "lucide-react";
+import { Icon } from "lucide-react";
+import { yarnBall } from "@lucide/lab";
 import { NAV_ITEMS } from "@/lib/navigation";
 import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -12,7 +13,7 @@ function BrandMark() {
   return (
     <div className="flex items-center gap-2 px-5 py-5">
       <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-500 text-white">
-        <Sparkles className="h-5 w-5" />
+        <Icon iconNode={yarnBall} className="h-5 w-5" strokeWidth={1.75} />
       </div>
       <div>
         <p className="text-sm font-semibold leading-tight text-neutral-800">MERAKIT</p>
