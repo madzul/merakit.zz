@@ -1,10 +1,79 @@
 @import "tailwindcss";
 
+/*
+ * Tailwind v4 membaca definisi tema lewat blok @theme di CSS ini — bukan lagi
+ * lewat tailwind.config.ts kecuali diimpor eksplisit via `@config` (yang
+ * proyek ini TIDAK lakukan). Akibatnya seluruh palet warna kustom (primary,
+ * secondary, success/warning/danger/info), border-radius, box-shadow, dan
+ * font-family yang sebelumnya hanya didefinisikan di tailwind.config.ts
+ * tidak pernah benar-benar dikompilasi ke CSS — kelas seperti bg-primary-600,
+ * shadow-card, dsb. tidak menghasilkan style apa pun di production build.
+ * Palet di bawah ini dipindahkan langsung dari tailwind.config.ts (dirancang
+ * mengikuti referensi desain skrinshoot_sistem_merakit.pdf — hijau sage
+ * sebagai warna utama, krem keemasan sebagai aksen sekunder) supaya tampilan
+ * yang sudah dikodekan di seluruh komponen benar-benar tampil sesuai desain.
+ */
 @theme {
-  --color-primary: 221 222 227;
-  --color-primary-foreground: 255 255 255;
-  --color-muted: 240 240 240;
-  --color-muted-foreground: 63 63 70;
-  --radius-lg: 0.5rem;
-  /* Add any other custom theme colors you use */
+  /* Warna utama — hijau sage/teal lembut (tombol, link aktif, aksen brand) */
+  --color-primary-50: #eff7f5;
+  --color-primary-100: #d9ede8;
+  --color-primary-200: #b3dad1;
+  --color-primary-300: #8ac5b8;
+  --color-primary-400: #62b0a0;
+  --color-primary-500: #3f9686;
+  --color-primary-600: #327a6d;
+  --color-primary-700: #285f55;
+  --color-primary-800: #1e4640;
+  --color-primary-900: #142f2b;
+
+  /* Warna sekunder — krem keemasan */
+  --color-secondary-50: #fdfbf7;
+  --color-secondary-100: #f8f1e7;
+  --color-secondary-200: #f0e4cf;
+  --color-secondary-300: #e4d2ae;
+  --color-secondary-400: #d4ba84;
+  --color-secondary-500: #c2a05f;
+  --color-secondary-700: #8a6f3f;
+
+  /* Netral — dasar UI (kartu, teks, border) */
+  --color-neutral-50: #fafaf9;
+  --color-neutral-100: #f4f4f3;
+  --color-neutral-200: #e7e7e5;
+  --color-neutral-300: #d3d3d0;
+  --color-neutral-400: #a8a8a3;
+  --color-neutral-500: #7c7c77;
+  --color-neutral-600: #5b5b57;
+  --color-neutral-700: #434340;
+  --color-neutral-800: #2c2c2a;
+  --color-neutral-900: #1a1a18;
+
+  /* Warna status */
+  --color-success-50: #eef8f1;
+  --color-success-500: #4caf7d;
+  --color-success-600: #3c8f65;
+
+  --color-warning-50: #fdf5e7;
+  --color-warning-500: #e0a83e;
+  --color-warning-600: #bc8a2a;
+
+  --color-danger-50: #fbeeee;
+  --color-danger-500: #d96c6c;
+  --color-danger-600: #c24f4f;
+
+  --color-info-50: #eef3f9;
+  --color-info-500: #5b8dbe;
+  --color-info-600: #4573a0;
+
+  /* Border radius kustom (menimpa skala default Tailwind) */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  /* Shadow kartu kustom */
+  --shadow-card: 0 1px 2px 0 rgba(20, 40, 35, 0.04), 0 2px 8px -2px rgba(20, 40, 35, 0.06);
+  --shadow-card-hover: 0 4px 16px -4px rgba(20, 40, 35, 0.14);
+
+  /* Font utama: Inter (self-hosted, lihat src/app/layout.tsx + src/app/fonts) */
+  --font-sans: var(--font-inter), system-ui, sans-serif;
 }

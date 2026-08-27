@@ -51,7 +51,7 @@ Lihat [`.env.example`](./.env.example) untuk daftar lengkap dan penjelasan tiap 
 1. Buat project baru di [supabase.com](https://supabase.com).
 2. Jalankan `database-schema.sql` sekali di Supabase SQL Editor (membuat tabel, enum, RLS policy, trigger).
 3. (Opsional, untuk data contoh) jalankan `seed.sql` — perhatikan seed ini membuat baris berdasarkan email (`admin@merakit.id`, `lina@merakit.id`); buat dulu user tersebut lewat Supabase Auth sebelum menjalankan seed.
-4. Salin **Project URL** dan **anon public key** ke `.env.local` / environment variable Vercel.
+4. Ambil **Project URL** dan **anon/publishable key**: buka project di Supabase Dashboard, klik tombol **Connect** di bagian atas halaman → tab **App Frameworks** (pilih **Next.js**) — kedua nilai sudah siap salin dalam format `.env`. Alternatif lewat menu: sidebar **Project Settings → API Keys** (Project URL ada di sana juga, kadang di sub-tab **Data API**); untuk key, tab **API Keys** menampilkan *publishable key* (format baru `sb_publishable_...`) dan tab **Legacy API Keys** menampilkan *anon key* lama (format JWT `eyJ...`) — keduanya sama-sama valid untuk diisi ke `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Tempel ke `.env.local` untuk lokal, dan ke Environment Variables Vercel untuk deployment.
 
 ## Arsitektur & catatan penting
 
