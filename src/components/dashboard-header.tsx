@@ -1,9 +1,10 @@
 "use client";
 
-import { useTransition } from "react";
-import { usePathname } from "next/navigation";
+import { Fragment, Suspense, useTransition } from "react";
+import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Menu, Bell, LogOut, LoaderCircle, ChevronRight } from "lucide-react";
-import { NAV_ITEMS } from "@/lib/navigation";
+import { buildBreadcrumbs } from "@/lib/breadcrumbs";
 import { logout } from "@/lib/auth/actions";
 import type { UserRole } from "@/lib/types";
 
@@ -13,12 +14,55 @@ export interface HeaderProfile {
   avatarInitial: string;
 }
 
-function useBreadcrumbLabel() {
+function BreadcrumbTrail({ isEdit }: { isEdit: boolean }) {
   const pathname = usePathname();
-  const current = NAV_ITEMS.find(
-    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`)
+  const crumbs = [{ label: "MERAKIT", href: "/dashboard" }, ...buildBreadcrumbs(pathname, isEdit)];
+
+  return (
+    <nav aria-label="Breadcrumb" className="min-w-0">
+      <ol className="flex min-w-0 items-center gap-1.5 text-sm text-neutral-500">
+        {crumbs.map((crumb, index) => {
+          const isLast = index === crumbs.length - 1;
+          return (
+            <Fragment key={`${index}-${crumb.label}`}>
+              {/* Di layar kecil hanya halaman aktif yang tampil agar tidak terpotong. */}
+              <li className={isLast ? "min-w-0" : "hidden min-w-0 sm:block"}>
+                {isLast || !crumb.href ? (
+                  <span aria-current={isLast ? "page" : undefined} className={isLast ? "block truncate font-medium text-neutral-800" : "block truncate"}>
+                    {crumb.label}
+                  </span>
+                ) : (
+                  <Link href={crumb.href} className="block truncate hover:text-primary-700 hover:underline">
+                    {crumb.label}
+                  </Link>
+                )}
+              </li>
+              {!isLast && (
+                <li aria-hidden="true" className="hidden flex-shrink-0 sm:block">
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </li>
+              )}
+            </Fragment>
+          );
+        })}
+      </ol>
+    </nav>
   );
-  return current?.label ?? "Dashboard";
+}
+
+/** Halaman "/tambah?id=..." dipakai untuk mengedit — butuh query string. */
+function BreadcrumbWithQuery() {
+  const searchParams = useSearchParams();
+  return <BreadcrumbTrail isEdit={searchParams.has("id")} />;
+}
+
+function Breadcrumbs() {
+  // useSearchParams wajib dibungkus Suspense; sementara itu tampilkan versi tanpa query.
+  return (
+    <Suspense fallback={<BreadcrumbTrail isEdit={false} />}>
+      <BreadcrumbWithQuery />
+    </Suspense>
+  );
 }
 
 export function DashboardHeader({
@@ -29,7 +73,6 @@ export function DashboardHeader({
   /** Profil pengguna yang sedang login (dari Supabase), null selagi dimuat. */
   profile: HeaderProfile | null;
 }) {
-  const currentLabel = useBreadcrumbLabel();
   const [isLoggingOut, startLogoutTransition] = useTransition();
 
   return (
@@ -42,11 +85,7 @@ export function DashboardHeader({
         <Menu className="h-5 w-5" />
       </button>
 
-      <div className="flex min-w-0 items-center gap-1.5 text-sm text-neutral-500">
-        <span className="truncate">MERAKIT</span>
-        <ChevronRight className="h-3.5 w-3.5 flex-shrink-0" />
-        <span className="truncate font-medium text-neutral-800">{currentLabel}</span>
-      </div>
+      <Breadcrumbs />
 
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
         <button aria-label="Notifikasi" className="relative rounded-md p-2 text-neutral-600 hover:bg-neutral-100">
