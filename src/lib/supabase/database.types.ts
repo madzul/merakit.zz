@@ -46,6 +46,7 @@ export interface Database {
           avatar: string | null;
           disability_description: string | null;
           monthly_production: number;
+          show_inclusive_badge: boolean;
           status: MemberStatusEnum;
           joined_at: string;
           notes: string | null;
@@ -59,6 +60,7 @@ export interface Database {
           avatar?: string | null;
           disability_description?: string | null;
           monthly_production?: number;
+          show_inclusive_badge?: boolean;
           status?: MemberStatusEnum;
           joined_at?: string;
           notes?: string | null;

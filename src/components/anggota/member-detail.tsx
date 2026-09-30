@@ -1,5 +1,6 @@
 "use client";
 
+import { InclusiveBadge } from "@/components/anggota/inclusive-badge";
 import Link from "next/link";
 import { useMemo } from "react";
 import { CalendarDays, MessageCircle, Pencil, Phone } from "lucide-react";
@@ -75,6 +76,7 @@ export function MemberDetail({ member, canEdit = false, isAdmin = false, product
               >
                 {MEMBER_STATUS_LABELS[member.status]}
               </span>
+              {member.showInclusiveBadge && <InclusiveBadge className="ml-2 mt-1" />}
 
               <dl className="mt-3 space-y-1.5 text-sm text-neutral-600">
                 <div className="flex items-center gap-2">
@@ -124,7 +126,7 @@ export function MemberDetail({ member, canEdit = false, isAdmin = false, product
         <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-card">
           <p className="text-sm font-medium text-neutral-500">Produksi Bulan Ini</p>
           <p className="mt-2 text-2xl font-semibold text-neutral-800">{member.monthlyProduction} pcs</p>
-          <p className="mt-1 text-xs text-neutral-400">Diperbarui setiap laporan produksi masuk.</p>
+          <p className="mt-1 text-xs text-neutral-400">Dihitung otomatis dari catatan produksi bulan ini (tidak termasuk yang dibatalkan).</p>
         </div>
       </div>
 

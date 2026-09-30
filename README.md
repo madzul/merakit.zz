@@ -56,6 +56,7 @@ Lihat [`.env.example`](./.env.example) untuk daftar lengkap dan penjelasan tiap 
    - `migration-foto-produk.sql` — bucket Storage publik `product-images` untuk foto produk (unggah/hapus khusus admin).
    - `migration-promo-pemasaran.sql` — kolom `source`, `promotion_id`, `discount_amount` pada `orders` (sumber pesanan & diskon promo).
    - `migration-indikator-dampak.sql` — indikator Laporan Akhir: kolom `reject_quantity` (jumlah cacat) pada `production_records` (stok produk hanya bertambah sebanyak produk layak) dan tabel `material_leftovers` (sisa bahan: disimpan / dimanfaatkan ulang / dibuang).
+   - `migration-label-inklusif.sql` — kolom `members.show_inclusive_badge`: label "Sobat Istimewa" hanya tampil bila anggota menyetujui (bawaan: tidak tampil).
    - `migration-akun-anggota-unik.sql` — indeks unik: satu akun login hanya terhubung ke satu anggota.
    - `migration-stok-produk.sql` — stok produk jadi otomatis: riwayat `product_stock_movements`, trigger dari produksi & pesanan Selesai, fungsi `set_product_stock` untuk hitung fisik. Stok yang tampil saat migrasi dijalankan tidak berubah.
 3. (Opsional, untuk data contoh) jalankan `seed.sql` — perhatikan seed ini membuat baris berdasarkan email (`admin@merakit.id`, `lina@merakit.id`); buat dulu user tersebut lewat Supabase Auth sebelum menjalankan seed.
@@ -104,6 +105,8 @@ Seluruh modul data di bawah ini **sudah membaca & menulis ke Supabase** (tidak a
 **Catatan indikator dampak (Laporan Akhir PKM):**
 - *Tingkat cacat* — isi "Jumlah Cacat / Reject" saat mencatat produksi. Halaman Produksi menampilkan tingkat cacat dan **Rekap per Anggota** (jumlah catatan, pcs, cacat, jam) sesuai filter periode, dan bisa diunduh CSV — bukti indikator ≥80% produksi tercatat.
 - *Sisa bahan* (`/bahan-baku/sisa`) — semua pengguna login bisa mencatat sisa benang/bahan per bulan; ringkasan menampilkan proporsi yang dimanfaatkan ulang (SDG 12). Anggota hanya bisa mengubah/menghapus catatannya sendiri.
+- *Produksi mingguan* — dashboard menampilkan produksi 8 minggu terakhir (layak jual vs cacat). "Produksi bulan ini" di data anggota dihitung otomatis dari catatan produksi, bukan diisi manual.
+- *Label Sobat Istimewa* — admin mencentang "Tampilkan label" di form anggota hanya setelah anggota setuju; keterangan kebutuhan dukungan tetap internal.
 - *Arus kas* — halaman Keuangan menampilkan grafik pemasukan vs pengeluaran 6 bulan terakhir.
 - *Jumlah pesanan* — halaman Pemasaran membandingkan pesanan, nilai, dan pelanggan dengan periode sebelumnya yang sama panjang, plus tren pesanan per bulan.
 
