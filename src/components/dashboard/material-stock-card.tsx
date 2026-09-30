@@ -18,7 +18,7 @@ export function MaterialStockCard({ items, emptyMessage = "Belum ada data stok b
   return (
     <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-card">
       <h2 className="text-sm font-semibold text-neutral-800">Ringkasan Stok Bahan Baku</h2>
-      <p className="mt-1 text-xs text-neutral-500">Ketersediaan bahan baku rajut saat ini.</p>
+      <p className="mt-1 text-xs text-neutral-500">Bahan yang paling perlu diperhatikan.</p>
 
       {items.length === 0 ? (
         <EmptyState className="mt-4" message={emptyMessage} />
@@ -35,7 +35,7 @@ export function MaterialStockCard({ items, emptyMessage = "Belum ada data stok b
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-neutral-800">{item.name}</p>
                   <p className="text-xs text-neutral-500">
-                    {item.quantity} {item.unit}
+                    {new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(item.quantity)} {item.unit}
                   </p>
                 </div>
                 <span

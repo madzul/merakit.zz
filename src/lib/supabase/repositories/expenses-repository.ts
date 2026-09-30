@@ -54,20 +54,26 @@ export async function getExpenseById(id: string): Promise<Transaction | null> {
   return data ? mapExpense(data) : null;
 }
 
-export async function createExpense(input: TransactionInput): Promise<void> {
+/** Mengembalikan id transaksi baru (dipakai modul Bahan Baku untuk menautkan pembelian). */
+export async function createExpense(input: TransactionInput): Promise<string> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const { error } = await supabase.from("expenses").insert({
-    description: input.description,
-    category: input.category,
-    amount: input.amount,
-    type: input.type,
-    date: input.date,
-    created_by: user?.id ?? null,
-  });
+  const { data, error } = await supabase
+    .from("expenses")
+    .insert({
+      description: input.description,
+      category: input.category,
+      amount: input.amount,
+      type: input.type,
+      date: input.date,
+      created_by: user?.id ?? null,
+    })
+    .select("id")
+    .single();
   if (error) throw error;
+  return data.id;
 }
 
 export async function updateExpense(id: string, input: TransactionInput): Promise<void> {

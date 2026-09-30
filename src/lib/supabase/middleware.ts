@@ -6,7 +6,7 @@ import { createFetchWithTimeout } from "@/lib/supabase/fetch-with-timeout";
 const SUPABASE_TIMEOUT_MS = 5000;
 
 // Seluruh route di dalam grup (dashboard) — hanya boleh diakses setelah login.
-const PROTECTED_PATHS = ["/dashboard", "/produksi", "/keuangan", "/pemasaran", "/promo"];
+const PROTECTED_PATHS = ["/dashboard", "/produksi", "/bahan-baku", "/keuangan", "/pemasaran", "/promo"];
 
 // Route yang hanya boleh diakses oleh role "admin" (selaras dengan RLS di
 // database-schema.sql). "/dashboard/anggota" TIDAK lagi di sini — anggota

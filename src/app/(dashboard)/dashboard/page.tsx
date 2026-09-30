@@ -69,7 +69,7 @@ export default async function DashboardPage() {
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <MaterialStockCard
           items={materialStock}
-          emptyMessage="Pencatatan stok bahan baku belum tersedia di sistem (modul bahan baku masih dikembangkan)."
+          emptyMessage="Belum ada bahan baku. Tambahkan lewat menu Bahan Baku."
         />
         <RecentActivityCard activities={activities} />
         <QuickActions actions={quickActions} />
