@@ -56,6 +56,7 @@ Lihat [`.env.example`](./.env.example) untuk daftar lengkap dan penjelasan tiap 
    - `migration-foto-produk.sql` — bucket Storage publik `product-images` untuk foto produk (unggah/hapus khusus admin).
    - `migration-promo-pemasaran.sql` — kolom `source`, `promotion_id`, `discount_amount` pada `orders` (sumber pesanan & diskon promo).
    - `migration-indikator-dampak.sql` — indikator Laporan Akhir: kolom `reject_quantity` (jumlah cacat) pada `production_records` (stok produk hanya bertambah sebanyak produk layak) dan tabel `material_leftovers` (sisa bahan: disimpan / dimanfaatkan ulang / dibuang).
+   - `migration-keamanan-hak-akses.sql` — pertahanan berlapis: fungsi trigger tidak bisa dipanggil lewat API, fungsi bantu RLS tidak bisa dipanggil anon, dan anon hanya boleh membaca `products` (katalog). Peringatan advisor yang tersisa untuk `is_admin`/`current_member_id` (peran authenticated) memang disengaja karena dipakai aturan RLS.
    - `migration-label-inklusif.sql` — kolom `members.show_inclusive_badge`: label "Sobat Istimewa" hanya tampil bila anggota menyetujui (bawaan: tidak tampil).
    - `migration-akun-anggota-unik.sql` — indeks unik: satu akun login hanya terhubung ke satu anggota.
    - `migration-stok-produk.sql` — stok produk jadi otomatis: riwayat `product_stock_movements`, trigger dari produksi & pesanan Selesai, fungsi `set_product_stock` untuk hitung fisik. Stok yang tampil saat migrasi dijalankan tidak berubah.
