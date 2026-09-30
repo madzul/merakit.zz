@@ -3,7 +3,7 @@
 import { Fragment, Suspense, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Menu, Bell, LogOut, LoaderCircle, ChevronRight } from "lucide-react";
+import { Menu, Bell, LogOut, LoaderCircle, ChevronRight, KeyRound } from "lucide-react";
 import { buildBreadcrumbs } from "@/lib/breadcrumbs";
 import { logout } from "@/lib/auth/actions";
 import type { UserRole } from "@/lib/types";
@@ -107,6 +107,15 @@ export function DashboardHeader({
             <p className="text-xs capitalize text-neutral-500">{profile?.role ?? ""}</p>
           </div>
         </div>
+
+        <Link
+          href="/reset-password"
+          aria-label="Ganti kata sandi"
+          title="Ganti kata sandi"
+          className="rounded-md p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700"
+        >
+          <KeyRound className="h-5 w-5" aria-hidden="true" />
+        </Link>
 
         <button
           aria-label="Keluar"
