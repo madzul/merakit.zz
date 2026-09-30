@@ -1,36 +1,46 @@
-"use client";
-
-import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/empty-state";
 import { OrderForm } from "@/components/pesanan/order-form";
-import { getOrderById } from "@/lib/order-store";
+import { getCurrentProfile } from "@/lib/supabase/repositories/profiles-repository";
+import { getOrderById } from "@/lib/supabase/repositories/orders-repository";
+import { getProducts } from "@/lib/supabase/repositories/products-repository";
 
-function TambahPesananContent() {
-  const searchParams = useSearchParams();
-  const editId = searchParams.get("id");
-  const existingOrder = editId ? getOrderById(editId) : undefined;
-  const isEditMode = Boolean(editId);
+interface TambahPesananPageProps {
+  searchParams: Promise<{ id?: string }>;
+}
+
+/** Form tambah/edit pesanan — khusus admin (juga ditegakkan server action & RLS). */
+export default async function TambahPesananPage({ searchParams }: TambahPesananPageProps) {
+  const { id: editId } = await searchParams;
+
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/login");
+  if (profile.role !== "admin") redirect("/dashboard/pesanan");
+
+  const [products, existingOrder] = await Promise.all([
+    getProducts(),
+    editId ? getOrderById(editId).catch(() => null) : Promise.resolve(null),
+  ]);
+  if (editId && !existingOrder) redirect("/dashboard/pesanan");
+
+  const isEditMode = Boolean(existingOrder);
+  // Pesanan baru hanya untuk produk aktif; saat edit, produk lama tetap bisa dipilih.
+  const productOptions = products
+    .filter((product) => product.isActive || product.id === existingOrder?.productId)
+    .map(({ id, name, price, stock }) => ({ id, name, price, stock }));
 
   return (
     <div>
       <PageHeader
         title={isEditMode ? "Edit Pesanan" : "Tambah Pesanan"}
-        description={
-          isEditMode
-            ? "Perbarui detail pesanan pelanggan."
-            : "Catat pesanan baru dari pelanggan."
-        }
+        description={isEditMode ? "Perbarui detail pesanan pelanggan." : "Catat pesanan baru dari pelanggan."}
       />
-      <OrderForm order={existingOrder} />
+      {productOptions.length === 0 ? (
+        <EmptyState message="Belum ada produk aktif di katalog. Tambahkan produk terlebih dahulu." />
+      ) : (
+        <OrderForm order={existingOrder ?? undefined} products={productOptions} />
+      )}
     </div>
-  );
-}
-
-export default function TambahPesananPage() {
-  return (
-    <Suspense fallback={<div className="h-40 animate-pulse rounded-xl bg-neutral-100" />}>
-      <TambahPesananContent />
-    </Suspense>
   );
 }

@@ -18,8 +18,10 @@ interface OrderTableProps {
   totalPages: number;
   totalOrders: number;
   onPageChange: (page: number) => void;
-  onDelete: (order: Order) => void;
+  onDelete: (order: Order) => void | Promise<void>;
   onStatusChange: (order: Order, status: OrderStatus) => void;
+  /** False untuk anggota biasa: hanya lihat (ubah status/edit/hapus khusus admin). */
+  canManage?: boolean;
 }
 
 const COLUMN_COUNT = 8;
@@ -37,6 +39,7 @@ export function OrderTable({
   onPageChange,
   onDelete,
   onStatusChange,
+  canManage = true,
 }: OrderTableProps) {
   const router = useRouter();
   const [pendingDelete, setPendingDelete] = useState<Order | null>(null);
@@ -46,15 +49,12 @@ export function OrderTable({
     router.push(`/dashboard/pesanan/tambah?id=${order.id}`);
   }
 
-  function handleConfirmDelete() {
+  async function handleConfirmDelete() {
     if (!pendingDelete) return;
     setDeleting(true);
-    // Simulasi proses penghapusan (data dummy, belum terhubung backend/database).
-    window.setTimeout(() => {
-      onDelete(pendingDelete);
-      setDeleting(false);
-      setPendingDelete(null);
-    }, 500);
+    await onDelete(pendingDelete);
+    setDeleting(false);
+    setPendingDelete(null);
   }
 
   return (
@@ -106,6 +106,8 @@ export function OrderTable({
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1.5">
                       <OrderStatusBadge status={order.status} />
+                      {canManage && (
+                      <>
                       <label className="sr-only" htmlFor={`status-${order.id}`}>
                         Ubah status pesanan {order.customerName}
                       </label>
@@ -121,6 +123,8 @@ export function OrderTable({
                           </option>
                         ))}
                       </select>
+                      </>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -132,6 +136,8 @@ export function OrderTable({
                       >
                         <Eye className="h-4 w-4" aria-hidden="true" />
                       </Link>
+                      {canManage && (
+                      <>
                       <button
                         type="button"
                         onClick={() => handleEdit(order)}
@@ -148,6 +154,8 @@ export function OrderTable({
                       >
                         <Trash2 className="h-4 w-4" aria-hidden="true" />
                       </button>
+                      </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -198,6 +206,7 @@ export function OrderTable({
                 </p>
               </div>
 
+              {canManage && (
               <div className="flex flex-col gap-1.5 pt-1">
                 <label className="text-xs font-medium text-neutral-600" htmlFor={`status-mobile-${order.id}`}>
                   Ubah Status
@@ -215,6 +224,7 @@ export function OrderTable({
                   ))}
                 </select>
               </div>
+              )}
 
               <div className="flex items-center justify-end gap-2 pt-1">
                 <Link
@@ -224,6 +234,8 @@ export function OrderTable({
                   <Eye className="h-3.5 w-3.5" aria-hidden="true" />
                   Detail
                 </Link>
+                {canManage && (
+                <>
                 <button
                   type="button"
                   onClick={() => handleEdit(order)}
@@ -240,13 +252,15 @@ export function OrderTable({
                   <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                   Hapus
                 </button>
+                </>
+                )}
               </div>
             </div>
           ))
         )}
       </div>
 
-      {/* Pagination (dummy — hanya mengiris data lokal, belum terhubung backend) */}
+      {/* Pagination (mengiris data yang sudah dimuat dari server) */}
       {!loading && totalOrders > 0 && (
         <div className="flex flex-col items-center justify-between gap-3 border-t border-neutral-100 px-4 py-3 sm:flex-row">
           <p className="text-xs text-neutral-500">

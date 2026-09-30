@@ -1,16 +1,19 @@
-"use client";
-
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
 import { ProductDetail } from "@/components/produk/product-detail";
-import { getProductById } from "@/lib/product-store";
+import { getCurrentProfile } from "@/lib/supabase/repositories/profiles-repository";
+import { getProductById } from "@/lib/supabase/repositories/products-repository";
 
-export default function ProdukDetailPage() {
-  const params = useParams<{ id: string }>();
-  const product = getProductById(params.id);
+interface ProdukDetailPageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function ProdukDetailPage({ params }: ProdukDetailPageProps) {
+  const { id } = await params;
+  const [product, profile] = await Promise.all([getProductById(id).catch(() => null), getCurrentProfile()]);
+  const isAdmin = profile?.role === "admin";
 
   return (
     <div>
@@ -29,7 +32,7 @@ export default function ProdukDetailPage() {
       />
 
       {product ? (
-        <ProductDetail product={product} />
+        <ProductDetail product={product} canManage={isAdmin} />
       ) : (
         <EmptyState message="Data produk tidak ditemukan. Mungkin sudah dihapus atau tautan tidak valid." />
       )}

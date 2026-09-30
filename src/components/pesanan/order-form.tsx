@@ -1,24 +1,25 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { AlertTriangle, LoaderCircle, Save, X } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { ORDER_STATUS_OPTIONS } from "@/lib/order-status";
-import { getProducts } from "@/lib/product-store";
-import { addOrder, updateOrder } from "@/lib/order-store";
-import type { Order, OrderStatus } from "@/lib/types";
+import { createOrderAction, updateOrderAction } from "@/lib/pesanan/actions";
+import type { Order, OrderStatus, Product } from "@/lib/types";
 
 interface OrderFormProps {
   /** Jika diisi, form berjalan dalam mode edit untuk pesanan ini. */
   order?: Order;
+  /** Produk dari katalog (Supabase) untuk dipilih. */
+  products: Pick<Product, "id" | "name" | "price" | "stock">[];
 }
 
 interface FormValues {
   orderDate: string;
   customerName: string;
   customerPhone: string;
-  productName: string;
+  productId: string;
   quantity: string;
   unitPrice: string;
   status: OrderStatus;
@@ -29,7 +30,7 @@ interface FormErrors {
   orderDate?: string;
   customerName?: string;
   customerPhone?: string;
-  productName?: string;
+  productId?: string;
   quantity?: string;
   unitPrice?: string;
 }
@@ -44,7 +45,7 @@ function toFormValues(order?: Order): FormValues {
       orderDate: todayIso(),
       customerName: "",
       customerPhone: "",
-      productName: "",
+      productId: "",
       quantity: "",
       unitPrice: "",
       status: "Menunggu",
@@ -55,7 +56,7 @@ function toFormValues(order?: Order): FormValues {
     orderDate: order.orderDate,
     customerName: order.customerName,
     customerPhone: order.customerPhone,
-    productName: order.productName,
+    productId: order.productId ?? "",
     quantity: String(order.quantity),
     unitPrice: String(order.unitPrice),
     status: order.status,
@@ -67,10 +68,9 @@ const inputClassName =
   "w-full rounded-lg border bg-white py-2.5 px-3 text-sm text-neutral-800 placeholder:text-neutral-400 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500/40";
 
 /** Form tambah/edit pesanan, dengan total bayar otomatis (jumlah x harga satuan). */
-export function OrderForm({ order }: OrderFormProps) {
+export function OrderForm({ order, products }: OrderFormProps) {
   const router = useRouter();
   const isEditMode = Boolean(order);
-  const products = useMemo(() => getProducts(), []);
 
   const [values, setValues] = useState<FormValues>(() => toFormValues(order));
   const [errors, setErrors] = useState<FormErrors>({});
@@ -81,15 +81,15 @@ export function OrderForm({ order }: OrderFormProps) {
     setValues((prev) => ({ ...prev, [key]: value }));
   }
 
-  function handleProductChange(productName: string) {
-    setField("productName", productName);
-    const selected = products.find((product) => product.name === productName);
+  function handleProductChange(productId: string) {
+    setField("productId", productId);
+    const selected = products.find((product) => product.id === productId);
     if (selected) {
       setField("unitPrice", String(selected.price));
     }
   }
 
-  const selectedProduct = products.find((product) => product.name === values.productName);
+  const selectedProduct = products.find((product) => product.id === values.productId);
   const quantityNumber = Number(values.quantity);
   const unitPriceNumber = Number(values.unitPrice);
   const totalAmount =
@@ -122,8 +122,8 @@ export function OrderForm({ order }: OrderFormProps) {
       nextErrors.customerPhone = "Nomor telepon/WhatsApp tidak valid.";
     }
 
-    if (!values.productName.trim()) {
-      nextErrors.productName = "Produk wajib dipilih.";
+    if (!values.productId) {
+      nextErrors.productId = "Produk wajib dipilih.";
     }
 
     if (!values.quantity.trim()) {
@@ -141,7 +141,7 @@ export function OrderForm({ order }: OrderFormProps) {
     return nextErrors;
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitError(null);
 
@@ -157,29 +157,23 @@ export function OrderForm({ order }: OrderFormProps) {
       orderDate: values.orderDate,
       customerName: values.customerName.trim(),
       customerPhone: values.customerPhone.replace(/\D/g, ""),
-      productName: values.productName,
+      productId: values.productId,
       quantity: Number(values.quantity),
       unitPrice: Number(values.unitPrice),
-      totalAmount,
       status: values.status,
       notes: values.notes.trim(),
     };
 
-    // Simulasi proses penyimpanan — data dummy, belum terhubung backend/database.
-    window.setTimeout(() => {
-      if (isEditMode && order) {
-        const updated = updateOrder(order.id, payload);
-        if (!updated) {
-          setIsSubmitting(false);
-          setSubmitError("Pesanan tidak ditemukan. Mungkin sudah dihapus.");
-          return;
-        }
-        router.push("/dashboard/pesanan?toast=updated");
-      } else {
-        addOrder(payload);
-        router.push("/dashboard/pesanan?toast=created");
-      }
-    }, 600);
+    const result =
+      isEditMode && order ? await updateOrderAction(order.id, payload) : await createOrderAction(payload);
+
+    if (result.error) {
+      setIsSubmitting(false);
+      setSubmitError(result.error);
+      return;
+    }
+    router.push(`/dashboard/pesanan?toast=${isEditMode ? "updated" : "created"}`);
+    router.refresh();
   }
 
   return (
@@ -246,17 +240,17 @@ export function OrderForm({ order }: OrderFormProps) {
           />
         </Field>
 
-        <Field label="Produk" htmlFor="productName" error={errors.productName}>
+        <Field label="Produk" htmlFor="productId" error={errors.productId}>
           <select
-            id="productName"
-            value={values.productName}
+            id="productId"
+            value={values.productId}
             onChange={(event) => handleProductChange(event.target.value)}
-            aria-invalid={Boolean(errors.productName)}
-            className={cn(inputClassName, "pr-8", errors.productName ? "border-danger-500" : "border-neutral-200 focus:border-primary-500")}
+            aria-invalid={Boolean(errors.productId)}
+            className={cn(inputClassName, "pr-8", errors.productId ? "border-danger-500" : "border-neutral-200 focus:border-primary-500")}
           >
             <option value="">Pilih produk...</option>
             {products.map((productOption) => (
-              <option key={productOption.id} value={productOption.name}>
+              <option key={productOption.id} value={productOption.id}>
                 {productOption.name}
               </option>
             ))}

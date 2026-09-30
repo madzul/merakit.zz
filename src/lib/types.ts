@@ -80,15 +80,16 @@ export interface QuickAction {
 export type ProductionStatus = "diajukan" | "diproses" | "selesai" | "dibatalkan";
 
 /**
- * Catatan produksi anggota komunitas (modul Data Produksi — tahap 4).
- * `productionDate` & `id` disimpan sebagai string (ISO date / dummy id) karena
- * seluruh data pada modul ini masih berupa data dummy TypeScript, belum
- * terhubung ke database/backend sungguhan.
+ * Catatan produksi anggota komunitas (modul Data Produksi) — tabel
+ * `production_records` di Supabase. `memberName`/`productName` adalah hasil
+ * join untuk tampilan; `memberId`/`productId` dipakai saat menyimpan.
  */
 export interface ProductionRecord {
   id: string;
   productionDate: string;
+  memberId: string;
   memberName: string;
+  productId: string | null;
   productName: string;
   quantity: number;
   duration: number;
@@ -168,10 +169,7 @@ export interface OrderListItem {
 export const PRODUCT_CATEGORIES = ["Syal", "Tas", "Topi", "Dekorasi Rumah", "Aksesoris"] as const;
 export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
 
-/**
- * Produk katalog MERAKIT (modul Katalog Produk — tahap 6). Data masih dummy
- * (in-memory), belum terhubung database/backend/Supabase.
- */
+/** Produk katalog MERAKIT (modul Katalog Produk) — tabel `products` di Supabase. */
 export interface Product {
   id: string;
   name: string;
@@ -192,10 +190,7 @@ export interface Product {
  */
 export type OrderStatus = "Menunggu" | "Diproses" | "Selesai" | "Dibatalkan";
 
-/**
- * Pesanan pelanggan (modul Data Pesanan — tahap 6). Data masih dummy
- * (in-memory), belum terhubung database/backend/Supabase.
- */
+/** Pesanan pelanggan (modul Data Pesanan) — tabel `orders` di Supabase. */
 export interface Order {
   id: string;
   /** Tanggal pesanan, format ISO ("YYYY-MM-DD"). */
@@ -203,6 +198,7 @@ export interface Order {
   customerName: string;
   /** Nomor telepon/WhatsApp pemesan, format internasional tanpa "+", mis. "6281234567890". */
   customerPhone: string;
+  productId: string | null;
   productName: string;
   quantity: number;
   unitPrice: number;

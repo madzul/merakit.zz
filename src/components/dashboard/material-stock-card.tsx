@@ -11,16 +11,17 @@ const STATUS_STYLES: Record<MaterialStockStatus, { badge: string; icon: LucideIc
 
 interface MaterialStockCardProps {
   items: MaterialStockItem[];
+  emptyMessage?: string;
 }
 
-export function MaterialStockCard({ items }: MaterialStockCardProps) {
+export function MaterialStockCard({ items, emptyMessage = "Belum ada data stok bahan baku." }: MaterialStockCardProps) {
   return (
     <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-card">
       <h2 className="text-sm font-semibold text-neutral-800">Ringkasan Stok Bahan Baku</h2>
       <p className="mt-1 text-xs text-neutral-500">Ketersediaan bahan baku rajut saat ini.</p>
 
       {items.length === 0 ? (
-        <EmptyState className="mt-4" message="Belum ada data stok bahan baku." />
+        <EmptyState className="mt-4" message={emptyMessage} />
       ) : (
         <ul className="mt-4 space-y-3">
           {items.map((item) => {

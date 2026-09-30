@@ -5,6 +5,7 @@ import { AlertTriangle, CalendarDays, Pencil, Tag } from "lucide-react";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import {
   PRODUCT_ACTIVE_BADGE_STYLES,
+  PRODUCT_PLACEHOLDER_IMAGE,
   PRODUCT_ACTIVE_LABELS,
   activeKey,
   isLowStock,
@@ -14,10 +15,12 @@ import type { Product } from "@/lib/types";
 
 interface ProductDetailProps {
   product: Product;
+  /** False untuk anggota biasa: tombol Edit disembunyikan. */
+  canManage?: boolean;
 }
 
 /** Detail produk katalog: gambar, deskripsi, harga, stok, dan status aktif. */
-export function ProductDetail({ product }: ProductDetailProps) {
+export function ProductDetail({ product, canManage = true }: ProductDetailProps) {
   const lowStock = isLowStock(product.stock);
   const outOfStock = isOutOfStock(product.stock);
 
@@ -27,7 +30,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
         <div className="relative aspect-square w-full bg-neutral-50">
           {/* eslint-disable-next-line @next/next/no-img-element -- gambar placeholder lokal (SVG statis) */}
           <img
-            src={product.imageUrl}
+            src={product.imageUrl || PRODUCT_PLACEHOLDER_IMAGE}
             alt={`Gambar placeholder produk ${product.name}`}
             className="absolute inset-0 h-full w-full object-contain p-8"
           />
@@ -53,6 +56,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
               </span>
             </div>
 
+            {canManage && (
             <Link
               href={`/dashboard/produk/tambah?id=${product.id}`}
               className="flex flex-shrink-0 items-center gap-1.5 rounded-lg bg-primary-700 px-3.5 py-2 text-sm font-semibold text-white hover:bg-primary-800"
@@ -60,6 +64,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
               <Pencil className="h-4 w-4" aria-hidden="true" />
               Edit
             </Link>
+            )}
           </div>
 
           <p className="mt-4 text-sm text-neutral-600">{product.description}</p>
