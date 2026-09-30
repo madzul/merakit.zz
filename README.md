@@ -55,6 +55,7 @@ Lihat [`.env.example`](./.env.example) untuk daftar lengkap dan penjelasan tiap 
    - `migration-bahan-baku.sql` — tabel bahan baku, riwayat stok, resep produk, dan trigger pemakaian bahan otomatis dari produksi.
    - `migration-foto-produk.sql` — bucket Storage publik `product-images` untuk foto produk (unggah/hapus khusus admin).
    - `migration-promo-pemasaran.sql` — kolom `source`, `promotion_id`, `discount_amount` pada `orders` (sumber pesanan & diskon promo).
+   - `migration-indikator-dampak.sql` — indikator Laporan Akhir: kolom `reject_quantity` (jumlah cacat) pada `production_records` (stok produk hanya bertambah sebanyak produk layak) dan tabel `material_leftovers` (sisa bahan: disimpan / dimanfaatkan ulang / dibuang).
    - `migration-akun-anggota-unik.sql` — indeks unik: satu akun login hanya terhubung ke satu anggota.
    - `migration-stok-produk.sql` — stok produk jadi otomatis: riwayat `product_stock_movements`, trigger dari produksi & pesanan Selesai, fungsi `set_product_stock` untuk hitung fisik. Stok yang tampil saat migrasi dijalankan tidak berubah.
 3. (Opsional, untuk data contoh) jalankan `seed.sql` — perhatikan seed ini membuat baris berdasarkan email (`admin@merakit.id`, `lina@merakit.id`); buat dulu user tersebut lewat Supabase Auth sebelum menjalankan seed.
@@ -100,9 +101,15 @@ Seluruh modul data di bawah ini **sudah membaca & menulis ke Supabase** (tidak a
 
 **Catatan stok produk jadi:** sama seperti bahan baku, `products.stock` **dihitung ulang oleh trigger** dari riwayat `product_stock_movements`. Catatan produksi berstatus `selesai` menambah stok; pesanan berstatus `Selesai` menguranginya; mengubah status/jumlah/produk atau menghapus catatan tersebut ikut mengoreksi stok. Angka stok di form Edit Produk dianggap hasil hitung fisik — selisihnya dicatat sebagai penyesuaian lewat `set_product_stock` (khusus admin). Riwayat tidak bisa diubah/dihapus lewat API; koreksi selalu berupa penyesuaian baru. Stok boleh menjadi minus bila pesanan diselesaikan sebelum produksinya dicatat — tanda ada catatan produksi yang terlewat.
 
+**Catatan indikator dampak (Laporan Akhir PKM):**
+- *Tingkat cacat* — isi "Jumlah Cacat / Reject" saat mencatat produksi. Halaman Produksi menampilkan tingkat cacat dan **Rekap per Anggota** (jumlah catatan, pcs, cacat, jam) sesuai filter periode, dan bisa diunduh CSV — bukti indikator ≥80% produksi tercatat.
+- *Sisa bahan* (`/bahan-baku/sisa`) — semua pengguna login bisa mencatat sisa benang/bahan per bulan; ringkasan menampilkan proporsi yang dimanfaatkan ulang (SDG 12). Anggota hanya bisa mengubah/menghapus catatannya sendiri.
+- *Arus kas* — halaman Keuangan menampilkan grafik pemasukan vs pengeluaran 6 bulan terakhir.
+- *Jumlah pesanan* — halaman Pemasaran membandingkan pesanan, nilai, dan pelanggan dengan periode sebelumnya yang sama panjang, plus tren pesanan per bulan.
+
 **Catatan Promo & Pemasaran:** kode promo diketik admin saat mencatat pesanan; potongan **dihitung ulang di server** (persen atau nominal, tidak pernah melebihi subtotal) dan disimpan di `orders.discount_amount`, sehingga `total_amount` = jumlah × harga − diskon — angka ini yang dipakai Dashboard, Keuangan, dan Pemasaran. Rencana produksi di halaman Pemasaran = pesanan terbuka (Menunggu/Diproses) − stok produk, ditambah cadangan ±2 minggu rata-rata penjualan.
 
-Modul Bahan Baku membutuhkan `migration-bahan-baku.sql`, foto produk membutuhkan `migration-foto-produk.sql`, Promo/Pemasaran membutuhkan `migration-promo-pemasaran.sql`, dan stok produk otomatis membutuhkan `migration-stok-produk.sql` (lihat [Database Supabase](#database-supabase)). Setelah deploy, data yang tampil adalah data sungguhan di Supabase; jalankan `seed.sql` bila perlu data contoh.
+Modul Bahan Baku membutuhkan `migration-bahan-baku.sql`, foto produk membutuhkan `migration-foto-produk.sql`, Promo/Pemasaran membutuhkan `migration-promo-pemasaran.sql`, stok produk otomatis membutuhkan `migration-stok-produk.sql`, dan indikator cacat/sisa bahan membutuhkan `migration-indikator-dampak.sql` (lihat [Database Supabase](#database-supabase)). Setelah deploy, data yang tampil adalah data sungguhan di Supabase; jalankan `seed.sql` bila perlu data contoh.
 
 Alamat lama `/anggota`, `/pesanan`, `/produk` (tanpa prefiks `/dashboard`) kini otomatis diarahkan ke `/dashboard/anggota`, `/dashboard/pesanan`, dan `/dashboard/produk`.
 
@@ -139,6 +146,7 @@ Jalankan manual terhadap URL production (dan idealnya juga preview) setelah depl
 - [ ] **Foto produk** — unggah foto dari HP di form produk, simpan, cek tampil di dashboard & katalog; ganti foto → foto lama terhapus dari Storage.
 - [ ] **Bahan Baku** — tambah bahan dengan stok awal; catat masuk (centang "catat ke Keuangan" → muncul di Keuangan); atur resep di detail produk dan lihat HPP/margin; catat produksi produk itu → stok bahan berkurang otomatis; batalkan produksi → stok kembali.
 - [ ] **Stok produk otomatis** — catat produksi lalu ubah statusnya ke Selesai → stok produk bertambah dan tercatat di Riwayat Stok (detail produk); ubah pesanan ke Selesai → stok berkurang; batalkan → stok kembali; ubah angka stok di Edit Produk → muncul baris Penyesuaian.
+- [ ] **Indikator dampak** — catat produksi dengan jumlah cacat → tingkat cacat & rekap per anggota tampil, CSV terunduh; produksi selesai hanya menambah stok sebanyak produk layak; catat sisa bahan lalu ubah statusnya → persentase dimanfaatkan ulang berubah; grafik arus kas tampil di Keuangan; kartu Pemasaran menampilkan perubahan vs periode sebelumnya.
 - [ ] **Keuangan** — catat/edit/hapus pemasukan & pengeluaran; ganti bulan; ringkasan menghitung penjualan pesanan selesai; laporan bulanan tercetak rapi (tanpa sidebar) dan CSV terbuka benar di Excel.
 - [ ] **Role member (anggota)** — akun non-admin **tidak** bisa membuka `/dashboard/anggota` atau `/keuangan` (di-redirect ke `/dashboard`), dan menu tersebut tidak tampil di sidebar.
 - [ ] **Dashboard** — statistik, grafik produksi-penjualan, dan kartu ringkasan tampil tanpa error.

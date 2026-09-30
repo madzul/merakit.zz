@@ -18,6 +18,7 @@ function mapProductionRecord(row: ProductionRow): ProductionRecord {
     productId: row.product_id,
     productName: row.products?.name ?? "-",
     quantity: row.quantity,
+    rejectQuantity: row.reject_quantity ?? 0,
     duration: row.duration,
     status: row.status,
     notes: row.notes ?? "",
@@ -29,6 +30,7 @@ export interface ProductionInput {
   productId: string;
   productionDate: string;
   quantity: number;
+  rejectQuantity: number;
   duration: number;
   status: ProductionStatus;
   notes: string;
@@ -93,6 +95,7 @@ export async function createProductionRecord(input: ProductionInput): Promise<vo
     product_id: input.productId,
     production_date: input.productionDate,
     quantity: input.quantity,
+    reject_quantity: input.rejectQuantity,
     duration: input.duration,
     status: input.status,
     notes: input.notes,
@@ -109,6 +112,7 @@ export async function updateProductionRecord(id: string, input: ProductionInput)
       product_id: input.productId,
       production_date: input.productionDate,
       quantity: input.quantity,
+      reject_quantity: input.rejectQuantity,
       duration: input.duration,
       status: input.status,
       notes: input.notes,

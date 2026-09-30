@@ -13,6 +13,7 @@ export type DiscountTypeEnum = "persen" | "nominal";
 export type PromoStatusEnum = "aktif" | "nonaktif" | "kedaluwarsa";
 export type MaterialMovementTypeEnum = "masuk" | "keluar" | "penyesuaian";
 export type ProductStockMovementTypeEnum = "masuk" | "keluar" | "penyesuaian";
+export type LeftoverStatusEnum = "disimpan" | "dimanfaatkan" | "dibuang";
 
 export interface Database {
   public: {
@@ -106,6 +107,7 @@ export interface Database {
           production_date: string;
           quantity: number;
           duration: number;
+          reject_quantity: number;
           status: ProductionStatusEnum;
           notes: string | null;
           created_at: string;
@@ -117,6 +119,7 @@ export interface Database {
           production_date?: string;
           quantity: number;
           duration?: number;
+          reject_quantity?: number;
           status?: ProductionStatusEnum;
           notes?: string | null;
         };
@@ -310,6 +313,46 @@ export interface Database {
             columns: ["order_id"];
             isOneToOne: true;
             referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      material_leftovers: {
+        Row: {
+          id: string;
+          material_id: string | null;
+          quantity: number;
+          unit: string;
+          leftover_date: string;
+          status: LeftoverStatusEnum;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          material_id?: string | null;
+          quantity: number;
+          unit?: string;
+          leftover_date?: string;
+          status?: LeftoverStatusEnum;
+          notes?: string | null;
+          created_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["material_leftovers"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "material_leftovers_material_id_fkey";
+            columns: ["material_id"];
+            isOneToOne: false;
+            referencedRelation: "materials";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "material_leftovers_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];

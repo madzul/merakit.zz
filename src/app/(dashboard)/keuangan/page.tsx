@@ -3,12 +3,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { FileText } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { CashflowChart } from "@/components/keuangan/cashflow-chart";
 import { CategoryBreakdown } from "@/components/keuangan/category-breakdown";
 import { FinanceSummary } from "@/components/keuangan/finance-summary";
 import { MonthNavigator } from "@/components/keuangan/month-navigator";
 import { TransactionListClient } from "@/components/keuangan/transaction-list-client";
 import { formatMonthLabel, parseMonthParam } from "@/lib/keuangan/constants";
-import { loadMonthlyFinance } from "@/lib/keuangan/load";
+import { loadCashflowTrend, loadMonthlyFinance } from "@/lib/keuangan/load";
 import { getCurrentProfile } from "@/lib/supabase/repositories/profiles-repository";
 
 interface KeuanganPageProps {
@@ -27,7 +28,7 @@ export default async function KeuanganPage({ searchParams }: KeuanganPageProps) 
 
   const { bulan } = await searchParams;
   const month = parseMonthParam(bulan);
-  const { transactions, report, loadError } = await loadMonthlyFinance(month);
+  const [{ transactions, report, loadError }, trend] = await Promise.all([loadMonthlyFinance(month), loadCashflowTrend(month)]);
 
   return (
     <div>
@@ -48,7 +49,7 @@ export default async function KeuanganPage({ searchParams }: KeuanganPageProps) 
         }
       />
 
-      {loadError && (
+      {(loadError || trend.loadError) && (
         <p role="alert" className="mb-4 rounded-lg bg-warning-50 px-3 py-2 text-sm text-warning-600">
           Sebagian data gagal dimuat, sehingga angka di bawah mungkin belum lengkap. Muat ulang halaman untuk mencoba lagi.
         </p>
@@ -56,6 +57,8 @@ export default async function KeuanganPage({ searchParams }: KeuanganPageProps) 
 
       <div className="space-y-4">
         <FinanceSummary report={report} />
+
+        <CashflowChart points={trend.points} />
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <CategoryBreakdown

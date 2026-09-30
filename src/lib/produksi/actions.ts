@@ -22,6 +22,8 @@ function validate(input: ProductionFormInput): string | null {
   if (!isIsoDate(input.productionDate)) return "Tanggal produksi tidak valid.";
   if (!isNonEmptyString(input.productId)) return "Produk wajib dipilih.";
   if (!isPositiveNumber(input.quantity) || !Number.isInteger(input.quantity)) return "Jumlah harus bilangan bulat lebih dari 0.";
+  if (!Number.isInteger(input.rejectQuantity) || input.rejectQuantity < 0) return "Jumlah cacat harus bilangan bulat 0 atau lebih.";
+  if (input.rejectQuantity > input.quantity) return "Jumlah cacat tidak boleh melebihi jumlah produksi.";
   if (!isPositiveNumber(input.duration) || !Number.isInteger(input.duration)) return "Durasi harus bilangan bulat lebih dari 0.";
   if (!(input.status in PRODUCTION_STATUS_LABELS)) return "Status produksi tidak valid.";
   return null;

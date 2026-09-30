@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, Layers, Plus, Wallet } from "lucide-react";
+import { AlertTriangle, Layers, Plus, Recycle, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
@@ -42,15 +42,24 @@ export default async function BahanBakuPage() {
         title="Bahan Baku"
         description="Stok benang & bahan lain. Pemakaian untuk produksi dicatat otomatis sesuai resep produk."
         actions={
-          isAdmin ? (
+          <>
             <Link
-              href="/bahan-baku/tambah"
-              className="flex items-center gap-1.5 rounded-lg bg-primary-700 px-3.5 py-2 text-sm font-semibold text-white hover:bg-primary-800"
+              href="/bahan-baku/sisa"
+              className="flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3.5 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
             >
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              Tambah Bahan
+              <Recycle className="h-4 w-4" aria-hidden="true" />
+              Sisa Bahan
             </Link>
-          ) : undefined
+            {isAdmin && (
+              <Link
+                href="/bahan-baku/tambah"
+                className="flex items-center gap-1.5 rounded-lg bg-primary-700 px-3.5 py-2 text-sm font-semibold text-white hover:bg-primary-800"
+              >
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Tambah Bahan
+              </Link>
+            )}
+          </>
         }
       />
 
