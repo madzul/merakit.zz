@@ -150,6 +150,10 @@ export interface Database {
           status: OrderStatusEnum;
           notes: string | null;
           created_at: string;
+          // migration-promo-pemasaran.sql
+          source: string;
+          promotion_id: string | null;
+          discount_amount: number;
         };
         Insert: {
           id?: string;
@@ -162,6 +166,9 @@ export interface Database {
           total_amount: number;
           status?: OrderStatusEnum;
           notes?: string | null;
+          source?: string;
+          promotion_id?: string | null;
+          discount_amount?: number;
         };
         Update: Partial<Database["public"]["Tables"]["orders"]["Insert"]>;
         Relationships: [
@@ -170,6 +177,12 @@ export interface Database {
             columns: ["product_id"];
             isOneToOne: false;
             referencedRelation: "products";
+            referencedColumns: ["id"];
+          },          {
+            foreignKeyName: "orders_promotion_id_fkey";
+            columns: ["promotion_id"];
+            isOneToOne: false;
+            referencedRelation: "promotions";
             referencedColumns: ["id"];
           },
         ];

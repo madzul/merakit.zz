@@ -5,7 +5,8 @@ import { useState, type FormEvent } from "react";
 import { AlertTriangle, LoaderCircle, Save, X } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { ORDER_STATUS_OPTIONS } from "@/lib/order-status";
-import { createOrderAction, updateOrderAction } from "@/lib/pesanan/actions";
+import { checkPromoCodeAction, createOrderAction, updateOrderAction, type AppliedPromo } from "@/lib/pesanan/actions";
+import { ORDER_SOURCES, computeDiscount } from "@/lib/promo/logic";
 import type { Order, OrderStatus, Product } from "@/lib/types";
 
 interface OrderFormProps {
@@ -13,6 +14,8 @@ interface OrderFormProps {
   order?: Order;
   /** Produk dari katalog (Supabase) untuk dipilih. */
   products: Pick<Product, "id" | "name" | "price" | "stock">[];
+  /** Promo yang sudah terpasang pada pesanan (mode edit). */
+  initialPromo?: AppliedPromo | null;
 }
 
 interface FormValues {
@@ -24,6 +27,7 @@ interface FormValues {
   unitPrice: string;
   status: OrderStatus;
   notes: string;
+  source: string;
 }
 
 interface FormErrors {
@@ -50,6 +54,7 @@ function toFormValues(order?: Order): FormValues {
       unitPrice: "",
       status: "Menunggu",
       notes: "",
+      source: "WhatsApp",
     };
   }
   return {
@@ -61,6 +66,7 @@ function toFormValues(order?: Order): FormValues {
     unitPrice: String(order.unitPrice),
     status: order.status,
     notes: order.notes,
+    source: order.source,
   };
 }
 
@@ -68,7 +74,7 @@ const inputClassName =
   "w-full rounded-lg border bg-white py-2.5 px-3 text-sm text-neutral-800 placeholder:text-neutral-400 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500/40";
 
 /** Form tambah/edit pesanan, dengan total bayar otomatis (jumlah x harga satuan). */
-export function OrderForm({ order, products }: OrderFormProps) {
+export function OrderForm({ order, products, initialPromo = null }: OrderFormProps) {
   const router = useRouter();
   const isEditMode = Boolean(order);
 
@@ -92,8 +98,43 @@ export function OrderForm({ order, products }: OrderFormProps) {
   const selectedProduct = products.find((product) => product.id === values.productId);
   const quantityNumber = Number(values.quantity);
   const unitPriceNumber = Number(values.unitPrice);
-  const totalAmount =
+  const subtotal =
     Number.isFinite(quantityNumber) && Number.isFinite(unitPriceNumber) ? quantityNumber * unitPriceNumber : 0;
+
+  const [promoInput, setPromoInput] = useState(initialPromo?.code ?? "");
+  const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(initialPromo);
+  const [promoMessage, setPromoMessage] = useState<string | null>(null);
+  const [checkingPromo, setCheckingPromo] = useState(false);
+  const discountAmount = appliedPromo ? computeDiscount(appliedPromo, subtotal) : 0;
+  const totalAmount = subtotal - discountAmount;
+
+  async function handleApplyPromo() {
+    setPromoMessage(null);
+    if (!promoInput.trim()) {
+      setAppliedPromo(null);
+      return;
+    }
+    if (initialPromo && promoInput.trim().toUpperCase() === initialPromo.code) {
+      setAppliedPromo(initialPromo);
+      return;
+    }
+    setCheckingPromo(true);
+    const result = await checkPromoCodeAction(promoInput, values.orderDate);
+    setCheckingPromo(false);
+    if (result.error || !result.promo) {
+      setAppliedPromo(null);
+      setPromoMessage(result.error ?? "Kode promo tidak valid.");
+      return;
+    }
+    setAppliedPromo(result.promo);
+    setPromoInput(result.promo.code);
+  }
+
+  function handleRemovePromo() {
+    setAppliedPromo(null);
+    setPromoInput("");
+    setPromoMessage(null);
+  }
 
   const showLowStockWarning =
     selectedProduct !== undefined &&
@@ -162,6 +203,8 @@ export function OrderForm({ order, products }: OrderFormProps) {
       unitPrice: Number(values.unitPrice),
       status: values.status,
       notes: values.notes.trim(),
+      source: values.source,
+      promoCode: appliedPromo?.code ?? "",
     };
 
     const result =
@@ -198,6 +241,24 @@ export function OrderForm({ order, products }: OrderFormProps) {
             aria-invalid={Boolean(errors.orderDate)}
             className={cn(inputClassName, errors.orderDate ? "border-danger-500" : "border-neutral-200 focus:border-primary-500")}
           />
+        </Field>
+
+        <Field label="Sumber Pesanan" htmlFor="source">
+          <select
+            id="source"
+            value={values.source}
+            onChange={(event) => setField("source", event.target.value)}
+            className={cn(inputClassName, "pr-8 border-neutral-200 focus:border-primary-500")}
+          >
+            {(ORDER_SOURCES as readonly string[]).includes(values.source) ? null : (
+              <option value={values.source}>{values.source}</option>
+            )}
+            {ORDER_SOURCES.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
         </Field>
 
         <Field label="Status" htmlFor="status">
@@ -291,14 +352,60 @@ export function OrderForm({ order, products }: OrderFormProps) {
           />
         </Field>
 
+        <Field label="Kode Promo (opsional)" htmlFor="promoCode">
+          {appliedPromo ? (
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-success-500/40 bg-success-50 px-3 py-2 text-sm">
+              <span className="font-medium text-success-600">{appliedPromo.label}</span>
+              <button type="button" onClick={handleRemovePromo} className="text-xs font-medium text-neutral-600 hover:underline">
+                Lepas
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                id="promoCode"
+                value={promoInput}
+                onChange={(event) => setPromoInput(event.target.value.toUpperCase())}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    handleApplyPromo();
+                  }
+                }}
+                placeholder="mis. MERAKIT10"
+                className={cn(inputClassName, "border-neutral-200 uppercase focus:border-primary-500")}
+              />
+              <button
+                type="button"
+                onClick={handleApplyPromo}
+                disabled={checkingPromo || !promoInput.trim()}
+                className="flex-shrink-0 rounded-lg border border-neutral-200 px-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
+              >
+                {checkingPromo ? <LoaderCircle className="h-4 w-4 animate-spin" aria-label="Memeriksa" /> : "Terapkan"}
+              </button>
+            </div>
+          )}
+          {promoMessage && (
+            <p role="alert" className="text-xs text-danger-600">
+              {promoMessage}
+            </p>
+          )}
+        </Field>
+
         <Field label="Total Bayar" htmlFor="totalAmount">
           <div
             id="totalAmount"
-            className="flex items-center rounded-lg border border-neutral-200 bg-neutral-50 py-2.5 px-3 text-sm font-semibold text-neutral-800"
+            className="rounded-lg border border-neutral-200 bg-neutral-50 py-2.5 px-3 text-sm text-neutral-800"
           >
-            {formatCurrency(totalAmount)}
+            {discountAmount > 0 && (
+              <div className="flex justify-between text-xs text-neutral-500">
+                <span>Subtotal {formatCurrency(subtotal)}</span>
+                <span className="text-success-600">−{formatCurrency(discountAmount)}</span>
+              </div>
+            )}
+            <p className="font-semibold">{formatCurrency(totalAmount)}</p>
           </div>
-          <p className="text-xs text-neutral-400">Dihitung otomatis dari jumlah &times; harga satuan.</p>
+          <p className="text-xs text-neutral-400">Jumlah &times; harga satuan{discountAmount > 0 ? " − diskon promo" : ""}. Dihitung ulang di server.</p>
         </Field>
       </div>
 
