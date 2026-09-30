@@ -55,8 +55,10 @@ Lihat [`.env.example`](./.env.example) untuk daftar lengkap dan penjelasan tiap 
    - `migration-bahan-baku.sql` — tabel bahan baku, riwayat stok, resep produk, dan trigger pemakaian bahan otomatis dari produksi.
    - `migration-foto-produk.sql` — bucket Storage publik `product-images` untuk foto produk (unggah/hapus khusus admin).
    - `migration-promo-pemasaran.sql` — kolom `source`, `promotion_id`, `discount_amount` pada `orders` (sumber pesanan & diskon promo).
+   - `migration-akun-anggota-unik.sql` — indeks unik: satu akun login hanya terhubung ke satu anggota.
    - `migration-stok-produk.sql` — stok produk jadi otomatis: riwayat `product_stock_movements`, trigger dari produksi & pesanan Selesai, fungsi `set_product_stock` untuk hitung fisik. Stok yang tampil saat migrasi dijalankan tidak berubah.
 3. (Opsional, untuk data contoh) jalankan `seed.sql` — perhatikan seed ini membuat baris berdasarkan email (`admin@merakit.id`, `lina@merakit.id`); buat dulu user tersebut lewat Supabase Auth sebelum menjalankan seed.
+4. **Akun login anggota:** buat akunnya di Supabase **Authentication → Users → Add user** (email + kirim undangan atau kata sandi). Lalu, sebagai admin, buka **Anggota → (pilih anggota) → Akun Login → Hubungkan**. Tanpa langkah ini anggota bisa login tetapi tidak bisa mencatat produksi.
 4. Ambil **Project URL** dan **anon/publishable key**: buka project di Supabase Dashboard, klik tombol **Connect** di bagian atas halaman → tab **App Frameworks** (pilih **Next.js**) — kedua nilai sudah siap salin dalam format `.env`. Alternatif lewat menu: sidebar **Project Settings → API Keys** (Project URL ada di sana juga, kadang di sub-tab **Data API**); untuk key, tab **API Keys** menampilkan *publishable key* (format baru `sb_publishable_...`) dan tab **Legacy API Keys** menampilkan *anon key* lama (format JWT `eyJ...`) — keduanya sama-sama valid untuk diisi ke `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Tempel ke `.env.local` untuk lokal, dan ke Environment Variables Vercel untuk deployment.
 
 ## Arsitektur & catatan penting
@@ -129,6 +131,7 @@ Jalankan manual terhadap URL production (dan idealnya juga preview) setelah depl
 - [ ] **Login** — email/password admin & anggota berhasil masuk; pesan error yang jelas untuk kredensial salah.
 - [ ] **Logout** — sesi benar-benar berakhir; mencoba mengakses `/dashboard` setelah logout mengarahkan ke `/login`.
 - [ ] **Refresh session** — buka tab baru / reload halaman dashboard setelah beberapa saat, pastikan sesi tetap tervalidasi (tidak ter-*log out* mendadak) berkat `middleware.ts`.
+- [ ] **Hubungkan akun** — buat user baru di Supabase Auth; di detail anggota (admin) pilih akun itu → Hubungkan; login sebagai anggota tsb → bisa mencatat produksi sendiri; akun yang sudah terhubung tidak muncul lagi di pilihan anggota lain.
 - [ ] **Role admin** — akun `admin` bisa mengakses `/dashboard/anggota` dan `/keuangan`.
 - [ ] **Promo** — buat kode promo persen & nominal; terapkan di form pesanan (diskon tampil, total berkurang); promo lewat tanggal ditolak di pesanan baru.
 - [ ] **Pemasaran** — ganti periode; produk terlaris & sumber pesanan sesuai data; rencana produksi menampilkan kekurangan untuk pesanan terbuka; akun anggota tidak melihat daftar pelanggan.
