@@ -4,20 +4,30 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { LoaderCircle, Save, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MEMBERS, PRODUCTS } from "@/lib/mock-data";
 import { PRODUCTION_STATUS_OPTIONS } from "@/lib/production-status";
-import { addProductionRecord, updateProductionRecord } from "@/lib/production-store";
+import { createProductionAction, updateProductionAction } from "@/lib/produksi/actions";
 import type { ProductionRecord, ProductionStatus } from "@/lib/types";
+
+interface Option {
+  id: string;
+  name: string;
+}
 
 interface ProductionFormProps {
   /** Jika diisi, form berjalan dalam mode edit untuk catatan ini. */
   record?: ProductionRecord;
+  products: Option[];
+  /**
+   * Daftar anggota untuk dipilih (khusus admin). `null` = pengguna anggota
+   * biasa: kolom anggota disembunyikan karena selalu dicatat atas namanya sendiri.
+   */
+  members: Option[] | null;
 }
 
 interface FormValues {
   productionDate: string;
-  memberName: string;
-  productName: string;
+  memberId: string;
+  productId: string;
   quantity: string;
   duration: string;
   notes: string;
@@ -26,8 +36,8 @@ interface FormValues {
 
 interface FormErrors {
   productionDate?: string;
-  memberName?: string;
-  productName?: string;
+  memberId?: string;
+  productId?: string;
   quantity?: string;
   duration?: string;
 }
@@ -40,8 +50,8 @@ function toFormValues(record?: ProductionRecord): FormValues {
   if (!record) {
     return {
       productionDate: todayIso(),
-      memberName: "",
-      productName: "",
+      memberId: "",
+      productId: "",
       quantity: "",
       duration: "",
       notes: "",
@@ -50,8 +60,8 @@ function toFormValues(record?: ProductionRecord): FormValues {
   }
   return {
     productionDate: record.productionDate,
-    memberName: record.memberName,
-    productName: record.productName,
+    memberId: record.memberId,
+    productId: record.productId ?? "",
     quantity: String(record.quantity),
     duration: String(record.duration),
     notes: record.notes,
@@ -62,7 +72,7 @@ function toFormValues(record?: ProductionRecord): FormValues {
 const inputClassName =
   "w-full rounded-lg border bg-white py-2.5 px-3 text-sm text-neutral-800 placeholder:text-neutral-400 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500/40";
 
-export function ProductionForm({ record }: ProductionFormProps) {
+export function ProductionForm({ record, products, members }: ProductionFormProps) {
   const router = useRouter();
   const isEditMode = Boolean(record);
 
@@ -81,31 +91,31 @@ export function ProductionForm({ record }: ProductionFormProps) {
     if (!values.productionDate) {
       nextErrors.productionDate = "Tanggal produksi wajib diisi.";
     }
-    if (!values.memberName.trim()) {
-      nextErrors.memberName = "Anggota wajib dipilih.";
+    if (members && !values.memberId) {
+      nextErrors.memberId = "Anggota wajib dipilih.";
     }
-    if (!values.productName.trim()) {
-      nextErrors.productName = "Produk wajib dipilih.";
+    if (!values.productId) {
+      nextErrors.productId = "Produk wajib dipilih.";
     }
 
     const quantityNumber = Number(values.quantity);
     if (!values.quantity.trim()) {
       nextErrors.quantity = "Jumlah wajib diisi.";
-    } else if (!Number.isFinite(quantityNumber) || quantityNumber <= 0) {
-      nextErrors.quantity = "Jumlah harus berupa angka lebih dari 0.";
+    } else if (!Number.isInteger(quantityNumber) || quantityNumber <= 0) {
+      nextErrors.quantity = "Jumlah harus berupa bilangan bulat lebih dari 0.";
     }
 
     const durationNumber = Number(values.duration);
     if (!values.duration.trim()) {
       nextErrors.duration = "Durasi wajib diisi.";
-    } else if (!Number.isFinite(durationNumber) || durationNumber <= 0) {
-      nextErrors.duration = "Durasi harus berupa angka lebih dari 0.";
+    } else if (!Number.isInteger(durationNumber) || durationNumber <= 0) {
+      nextErrors.duration = "Durasi harus berupa bilangan bulat (jam) lebih dari 0.";
     }
 
     return nextErrors;
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitError(null);
 
@@ -119,28 +129,26 @@ export function ProductionForm({ record }: ProductionFormProps) {
 
     const payload = {
       productionDate: values.productionDate,
-      memberName: values.memberName,
-      productName: values.productName,
+      memberId: members ? values.memberId : undefined,
+      productId: values.productId,
       quantity: Number(values.quantity),
       duration: Number(values.duration),
       notes: values.notes.trim(),
       status: values.status,
     };
 
-    // Simulasi proses penyimpanan — data dummy, belum terhubung backend/Supabase.
-    window.setTimeout(() => {
-      if (isEditMode && record) {
-        const updated = updateProductionRecord(record.id, payload);
-        if (!updated) {
-          setIsSubmitting(false);
-          setSubmitError("Catatan produksi tidak ditemukan. Mungkin sudah dihapus.");
-          return;
-        }
-      } else {
-        addProductionRecord(payload);
-      }
-      router.push("/produksi");
-    }, 600);
+    const result =
+      isEditMode && record
+        ? await updateProductionAction(record.id, payload)
+        : await createProductionAction(payload);
+
+    if (result.error) {
+      setIsSubmitting(false);
+      setSubmitError(result.error);
+      return;
+    }
+    router.push("/produksi");
+    router.refresh();
   }
 
   return (
@@ -163,34 +171,36 @@ export function ProductionForm({ record }: ProductionFormProps) {
           />
         </Field>
 
-        <Field label="Anggota" htmlFor="memberName" error={errors.memberName}>
-          <select
-            id="memberName"
-            value={values.memberName}
-            onChange={(event) => setField("memberName", event.target.value)}
-            aria-invalid={Boolean(errors.memberName)}
-            className={cn(inputClassName, "pr-8", errors.memberName ? "border-danger-500" : "border-neutral-200 focus:border-primary-500")}
-          >
-            <option value="">Pilih anggota...</option>
-            {MEMBERS.map((memberOption) => (
-              <option key={memberOption.id} value={memberOption.name}>
-                {memberOption.name}
-              </option>
-            ))}
-          </select>
-        </Field>
+        {members && (
+          <Field label="Anggota" htmlFor="memberId" error={errors.memberId}>
+            <select
+              id="memberId"
+              value={values.memberId}
+              onChange={(event) => setField("memberId", event.target.value)}
+              aria-invalid={Boolean(errors.memberId)}
+              className={cn(inputClassName, "pr-8", errors.memberId ? "border-danger-500" : "border-neutral-200 focus:border-primary-500")}
+            >
+              <option value="">Pilih anggota...</option>
+              {members.map((memberOption) => (
+                <option key={memberOption.id} value={memberOption.id}>
+                  {memberOption.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
 
-        <Field label="Produk" htmlFor="productName" error={errors.productName}>
+        <Field label="Produk" htmlFor="productId" error={errors.productId}>
           <select
-            id="productName"
-            value={values.productName}
-            onChange={(event) => setField("productName", event.target.value)}
-            aria-invalid={Boolean(errors.productName)}
-            className={cn(inputClassName, "pr-8", errors.productName ? "border-danger-500" : "border-neutral-200 focus:border-primary-500")}
+            id="productId"
+            value={values.productId}
+            onChange={(event) => setField("productId", event.target.value)}
+            aria-invalid={Boolean(errors.productId)}
+            className={cn(inputClassName, "pr-8", errors.productId ? "border-danger-500" : "border-neutral-200 focus:border-primary-500")}
           >
             <option value="">Pilih produk...</option>
-            {PRODUCTS.map((productOption) => (
-              <option key={productOption.id} value={productOption.name}>
+            {products.map((productOption) => (
+              <option key={productOption.id} value={productOption.id}>
                 {productOption.name}
               </option>
             ))}

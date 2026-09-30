@@ -5,7 +5,7 @@ import { useState, type FormEvent } from "react";
 import { LoaderCircle, Save, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PRODUCT_CATEGORY_OPTIONS, PRODUCT_IMAGE_OPTIONS } from "@/lib/product-status";
-import { addProduct, updateProduct } from "@/lib/product-store";
+import { createProductAction, updateProductAction } from "@/lib/produk/actions";
 import type { Product } from "@/lib/types";
 
 interface ProductFormProps {
@@ -29,10 +29,6 @@ interface FormErrors {
   description?: string;
   price?: string;
   stock?: string;
-}
-
-function todayIso() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 function toFormValues(product?: Product): FormValues {
@@ -109,7 +105,7 @@ export function ProductForm({ product }: ProductFormProps) {
     return nextErrors;
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitError(null);
 
@@ -129,24 +125,18 @@ export function ProductForm({ product }: ProductFormProps) {
       stock: Number(values.stock),
       imageUrl: values.imageUrl,
       isActive: values.isActive,
-      createdAt: product?.createdAt ?? todayIso(),
     };
 
-    // Simulasi proses penyimpanan — data dummy, belum terhubung backend/database.
-    window.setTimeout(() => {
-      if (isEditMode && product) {
-        const updated = updateProduct(product.id, payload);
-        if (!updated) {
-          setIsSubmitting(false);
-          setSubmitError("Produk tidak ditemukan. Mungkin sudah dihapus.");
-          return;
-        }
-        router.push("/dashboard/produk?toast=updated");
-      } else {
-        addProduct(payload);
-        router.push("/dashboard/produk?toast=created");
-      }
-    }, 600);
+    const result =
+      isEditMode && product ? await updateProductAction(product.id, payload) : await createProductAction(payload);
+
+    if (result.error) {
+      setIsSubmitting(false);
+      setSubmitError(result.error);
+      return;
+    }
+    router.push(`/dashboard/produk?toast=${isEditMode ? "updated" : "created"}`);
+    router.refresh();
   }
 
   return (

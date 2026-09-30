@@ -49,3 +49,6 @@ export const PRODUCT_IMAGE_OPTIONS: { value: string; label: string }[] = [
   { value: "/products/placeholder-dekorasi.svg", label: "Placeholder — Dekorasi Rumah" },
   { value: "/products/placeholder-aksesoris.svg", label: "Placeholder — Aksesoris" },
 ];
+
+/** Gambar cadangan bila produk belum punya gambar (image_url kosong di database). */
+export const PRODUCT_PLACEHOLDER_IMAGE = "/products/placeholder-aksesoris.svg";

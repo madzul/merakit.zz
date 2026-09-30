@@ -6,32 +6,33 @@ import { CalendarDays, MessageCircle, Pencil, Phone } from "lucide-react";
 import { cn, formatCurrency, formatDate, formatPhoneDisplay, toWhatsAppLink } from "@/lib/utils";
 import { OrderStatusBadge } from "@/components/pesanan/order-status-badge";
 import { ORDER_STATUS_OPTIONS } from "@/lib/order-status";
-import { updateOrderStatus } from "@/lib/order-store";
+import { updateOrderStatusAction } from "@/lib/pesanan/actions";
 import { ToastViewport, useToast } from "@/components/ui/toast";
 import type { Order, OrderStatus } from "@/lib/types";
 
 interface OrderDetailProps {
   order: Order;
+  /** False untuk anggota biasa: tombol Edit & ubah status disembunyikan. */
+  canManage?: boolean;
 }
 
 /** Detail pesanan: identitas pemesan, rincian produk, total bayar, dan perubahan status. */
-export function OrderDetail({ order: initialOrder }: OrderDetailProps) {
+export function OrderDetail({ order: initialOrder, canManage = true }: OrderDetailProps) {
   const { toast, showToast, dismissToast } = useToast();
   const [order, setOrder] = useState(initialOrder);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  function handleStatusChange(status: OrderStatus) {
+  async function handleStatusChange(status: OrderStatus) {
     if (status === order.status) return;
     setIsUpdating(true);
-    // Simulasi proses penyimpanan — data dummy, belum terhubung backend/database.
-    window.setTimeout(() => {
-      const updated = updateOrderStatus(order.id, status);
-      if (updated) {
-        setOrder(updated);
-        showToast(`Status pesanan diubah menjadi "${status}".`, "success");
-      }
-      setIsUpdating(false);
-    }, 400);
+    const result = await updateOrderStatusAction(order.id, status);
+    if (result.error) {
+      showToast(result.error, "danger");
+    } else {
+      setOrder((current) => ({ ...current, status }));
+      showToast(`Status pesanan diubah menjadi "${status}".`, "success");
+    }
+    setIsUpdating(false);
   }
 
   return (
@@ -66,6 +67,7 @@ export function OrderDetail({ order: initialOrder }: OrderDetailProps) {
               <MessageCircle className="h-4 w-4" aria-hidden="true" />
               WhatsApp
             </a>
+            {canManage && (
             <Link
               href={`/dashboard/pesanan/tambah?id=${order.id}`}
               className="flex items-center gap-1.5 rounded-lg bg-primary-700 px-3.5 py-2 text-sm font-semibold text-white hover:bg-primary-800"
@@ -73,6 +75,7 @@ export function OrderDetail({ order: initialOrder }: OrderDetailProps) {
               <Pencil className="h-4 w-4" aria-hidden="true" />
               Edit
             </Link>
+            )}
           </div>
         </div>
       </div>
@@ -91,6 +94,7 @@ export function OrderDetail({ order: initialOrder }: OrderDetailProps) {
         </div>
       </div>
 
+      {canManage && (
       <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-card sm:p-6">
         <h3 className="text-sm font-semibold text-neutral-800">Ubah Status Pesanan</h3>
         <p className="mt-1 text-xs text-neutral-400">
@@ -115,6 +119,7 @@ export function OrderDetail({ order: initialOrder }: OrderDetailProps) {
           ))}
         </div>
       </div>
+      )}
 
       <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-card sm:p-6">
         <h3 className="text-sm font-semibold text-neutral-800">Catatan</h3>
