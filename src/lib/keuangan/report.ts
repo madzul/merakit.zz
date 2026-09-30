@@ -61,3 +61,35 @@ export function buildMonthlyReport(transactions: Transaction[], orders: Order[])
     expenseByCategory: groupByCategory(expense),
   };
 }
+
+export interface CashflowPoint {
+  /** "YYYY-MM" */
+  month: string;
+  /** Label singkat untuk sumbu grafik, mis. "Sep". */
+  label: string;
+  pemasukan: number;
+  pengeluaran: number;
+  saldo: number;
+}
+
+const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
+
+/**
+ * Arus kas per bulan untuk daftar `months` ("YYYY-MM", urut lama → baru),
+ * memakai aturan yang sama dengan buildMonthlyReport.
+ */
+export function buildCashflowTrend(months: string[], transactions: Transaction[], orders: Order[]): CashflowPoint[] {
+  return months.map((month) => {
+    const report = buildMonthlyReport(
+      transactions.filter((transaction) => transaction.date.startsWith(month)),
+      orders.filter((order) => order.orderDate.startsWith(month))
+    );
+    return {
+      month,
+      label: SHORT_MONTHS[Number(month.slice(5, 7)) - 1],
+      pemasukan: report.totalIncome,
+      pengeluaran: report.totalExpense,
+      saldo: report.net,
+    };
+  });
+}

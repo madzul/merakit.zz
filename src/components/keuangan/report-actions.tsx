@@ -1,6 +1,7 @@
 "use client";
 
 import { Download, Printer } from "lucide-react";
+import { downloadCsv } from "@/lib/csv";
 
 export interface ReportCsvRow {
   date: string;
@@ -15,11 +16,6 @@ interface ReportActionsProps {
   rows: ReportCsvRow[];
 }
 
-function escapeCsv(value: string | number): string {
-  const text = String(value);
-  return /[";\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-}
-
 /**
  * Tombol cetak (bisa "Simpan sebagai PDF" dari dialog cetak browser) dan
  * unduh CSV. Pemisah ";" + BOM UTF-8 agar langsung terbaca benar oleh Excel
@@ -27,19 +23,11 @@ function escapeCsv(value: string | number): string {
  */
 export function ReportActions({ month, rows }: ReportActionsProps) {
   function handleDownloadCsv() {
-    const header = ["Tanggal", "Jenis", "Kategori", "Keterangan", "Jumlah (Rp)"];
-    const lines = [header, ...rows.map((row) => [row.date, row.type, row.category, row.description, row.amount])]
-      .map((line) => line.map(escapeCsv).join(";"))
-      .join("\r\n");
-    const blob = new Blob(["﻿" + lines], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `laporan-keuangan-merakit-${month}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    downloadCsv(
+      `laporan-keuangan-merakit-${month}.csv`,
+      ["Tanggal", "Jenis", "Kategori", "Keterangan", "Jumlah (Rp)"],
+      rows.map((row) => [row.date, row.type, row.category, row.description, row.amount])
+    );
   }
 
   return (

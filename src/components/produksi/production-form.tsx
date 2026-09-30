@@ -29,6 +29,7 @@ interface FormValues {
   memberId: string;
   productId: string;
   quantity: string;
+  rejectQuantity: string;
   duration: string;
   notes: string;
   status: ProductionStatus;
@@ -39,6 +40,7 @@ interface FormErrors {
   memberId?: string;
   productId?: string;
   quantity?: string;
+  rejectQuantity?: string;
   duration?: string;
 }
 
@@ -53,6 +55,7 @@ function toFormValues(record?: ProductionRecord): FormValues {
       memberId: "",
       productId: "",
       quantity: "",
+      rejectQuantity: "0",
       duration: "",
       notes: "",
       status: "diajukan",
@@ -63,6 +66,7 @@ function toFormValues(record?: ProductionRecord): FormValues {
     memberId: record.memberId,
     productId: record.productId ?? "",
     quantity: String(record.quantity),
+    rejectQuantity: String(record.rejectQuantity),
     duration: String(record.duration),
     notes: record.notes,
     status: record.status,
@@ -105,6 +109,13 @@ export function ProductionForm({ record, products, members }: ProductionFormProp
       nextErrors.quantity = "Jumlah harus berupa bilangan bulat lebih dari 0.";
     }
 
+    const rejectNumber = values.rejectQuantity.trim() === "" ? 0 : Number(values.rejectQuantity);
+    if (!Number.isInteger(rejectNumber) || rejectNumber < 0) {
+      nextErrors.rejectQuantity = "Jumlah cacat harus bilangan bulat 0 atau lebih.";
+    } else if (!nextErrors.quantity && rejectNumber > quantityNumber) {
+      nextErrors.rejectQuantity = "Jumlah cacat tidak boleh melebihi jumlah produksi.";
+    }
+
     const durationNumber = Number(values.duration);
     if (!values.duration.trim()) {
       nextErrors.duration = "Durasi wajib diisi.";
@@ -132,6 +143,7 @@ export function ProductionForm({ record, products, members }: ProductionFormProp
       memberId: members ? values.memberId : undefined,
       productId: values.productId,
       quantity: Number(values.quantity),
+      rejectQuantity: values.rejectQuantity.trim() === "" ? 0 : Number(values.rejectQuantity),
       duration: Number(values.duration),
       notes: values.notes.trim(),
       status: values.status,
@@ -234,6 +246,26 @@ export function ProductionForm({ record, products, members }: ProductionFormProp
             aria-invalid={Boolean(errors.quantity)}
             className={cn(inputClassName, errors.quantity ? "border-danger-500" : "border-neutral-200 focus:border-primary-500")}
           />
+        </Field>
+
+        <Field label="Jumlah Cacat / Reject (pcs)" htmlFor="rejectQuantity" error={errors.rejectQuantity}>
+          <input
+            id="rejectQuantity"
+            type="number"
+            min={0}
+            inputMode="numeric"
+            value={values.rejectQuantity}
+            onChange={(event) => setField("rejectQuantity", event.target.value)}
+            placeholder="0"
+            aria-invalid={Boolean(errors.rejectQuantity)}
+            aria-describedby="rejectQuantity-hint"
+            className={cn(inputClassName, errors.rejectQuantity ? "border-danger-500" : "border-neutral-200 focus:border-primary-500")}
+          />
+          {!errors.rejectQuantity && (
+            <p id="rejectQuantity-hint" className="text-xs text-neutral-500">
+              Produk yang ukurannya meleset atau rusak. Isi 0 bila semua layak jual.
+            </p>
+          )}
         </Field>
 
         <Field label="Durasi (jam)" htmlFor="duration" error={errors.duration}>
