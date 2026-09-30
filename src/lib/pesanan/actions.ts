@@ -127,6 +127,9 @@ function revalidateOrders(id?: string) {
   revalidatePath("/pemasaran");
   revalidatePath("/promo");
   revalidatePath("/keuangan", "layout");
+  // Pesanan "Selesai" mengurangi stok produk (trigger database).
+  revalidatePath("/dashboard/produk", "layout");
+  revalidatePath("/katalog", "layout");
   if (id) revalidatePath(`/dashboard/pesanan/${id}`);
 }
 
