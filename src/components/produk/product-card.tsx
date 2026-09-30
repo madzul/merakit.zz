@@ -5,12 +5,12 @@ import { AlertTriangle, Pencil, Trash2 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import {
   PRODUCT_ACTIVE_BADGE_STYLES,
-  PRODUCT_PLACEHOLDER_IMAGE,
   PRODUCT_ACTIVE_LABELS,
   activeKey,
   isLowStock,
   isOutOfStock,
 } from "@/lib/product-status";
+import { ProductImage } from "@/components/produk/product-image";
 import type { Product } from "@/lib/types";
 
 interface ProductCardProps {
@@ -30,12 +30,7 @@ export function ProductCard({ product, onEdit, onDelete, canManage = true }: Pro
     <div className="flex flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-card transition-shadow hover:shadow-card-hover">
       <Link href={`/dashboard/produk/${product.id}`} className="block">
         <div className="relative aspect-square w-full bg-neutral-50">
-          {/* eslint-disable-next-line @next/next/no-img-element -- gambar placeholder lokal (SVG statis), tidak memerlukan optimisasi next/image */}
-          <img
-            src={product.imageUrl || PRODUCT_PLACEHOLDER_IMAGE}
-            alt={`Gambar placeholder produk ${product.name}`}
-            className="absolute inset-0 h-full w-full object-contain p-6"
-          />
+          <ProductImage src={product.imageUrl} name={product.name} placeholderPadding="p-6" />
           <span
             className={cn(
               "absolute left-2 top-2 inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium",
