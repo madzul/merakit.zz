@@ -50,6 +50,10 @@ function revalidateProduction() {
   revalidatePath("/dashboard");
   // Pemakaian bahan dicatat otomatis oleh trigger database dari resep produk.
   revalidatePath("/bahan-baku", "layout");
+  // Produksi "selesai" menambah stok produk (trigger database).
+  revalidatePath("/dashboard/produk", "layout");
+  revalidatePath("/katalog", "layout");
+  revalidatePath("/pemasaran");
   revalidatePath("/dashboard/anggota", "layout");
 }
 

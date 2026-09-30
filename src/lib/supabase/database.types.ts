@@ -12,6 +12,7 @@ export type TransactionTypeEnum = "pemasukan" | "pengeluaran";
 export type DiscountTypeEnum = "persen" | "nominal";
 export type PromoStatusEnum = "aktif" | "nonaktif" | "kedaluwarsa";
 export type MaterialMovementTypeEnum = "masuk" | "keluar" | "penyesuaian";
+export type ProductStockMovementTypeEnum = "masuk" | "keluar" | "penyesuaian";
 
 export interface Database {
   public: {
@@ -266,6 +267,53 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["materials"]["Insert"]>;
         Relationships: [];
       };
+      product_stock_movements: {
+        Row: {
+          id: string;
+          product_id: string;
+          type: ProductStockMovementTypeEnum;
+          quantity: number;
+          movement_date: string;
+          production_record_id: string | null;
+          order_id: string | null;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          product_id: string;
+          type: ProductStockMovementTypeEnum;
+          quantity: number;
+          movement_date?: string;
+          notes?: string | null;
+          created_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["product_stock_movements"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "product_stock_movements_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "product_stock_movements_production_record_id_fkey";
+            columns: ["production_record_id"];
+            isOneToOne: true;
+            referencedRelation: "production_records";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "product_stock_movements_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: true;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       material_movements: {
         Row: {
           id: string;
@@ -335,6 +383,10 @@ export interface Database {
     Views: Record<string, never>;
     Functions: {
       is_admin: { Args: Record<string, never>; Returns: boolean };
+      set_product_stock: {
+        Args: { target_product_id: string; target_stock: number; note?: string | null };
+        Returns: number;
+      };
       current_member_id: { Args: Record<string, never>; Returns: string | null };
     };
     Enums: {
