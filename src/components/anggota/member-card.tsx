@@ -1,5 +1,6 @@
 "use client";
 
+import { InclusiveBadge } from "@/components/anggota/inclusive-badge";
 import Link from "next/link";
 import { MessageCircle, Pencil, Trash2 } from "lucide-react";
 import { cn, formatPhoneDisplay, getAvatarColorClass, toWhatsAppLink } from "@/lib/utils";
@@ -34,6 +35,7 @@ export function MemberCard({ member, onEdit, onDelete }: MemberCardProps) {
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-neutral-800">{member.name}</p>
             <p className="truncate text-xs text-neutral-500">{formatPhoneDisplay(member.phone)}</p>
+            {member.showInclusiveBadge && <InclusiveBadge className="mt-1" />}
           </div>
         </Link>
         <span
