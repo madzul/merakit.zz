@@ -11,6 +11,7 @@ export type OrderStatusEnum = "Menunggu" | "Diproses" | "Selesai" | "Dibatalkan"
 export type TransactionTypeEnum = "pemasukan" | "pengeluaran";
 export type DiscountTypeEnum = "persen" | "nominal";
 export type PromoStatusEnum = "aktif" | "nonaktif" | "kedaluwarsa";
+export type MaterialMovementTypeEnum = "masuk" | "keluar" | "penyesuaian";
 
 export interface Database {
   public: {
@@ -227,6 +228,96 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["promotions"]["Insert"]>;
         Relationships: [];
       };
+      // ---- migration-bahan-baku.sql ----
+      materials: {
+        Row: {
+          id: string;
+          name: string;
+          unit: string;
+          stock: number;
+          min_stock: number;
+          unit_cost: number;
+          notes: string | null;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          unit?: string;
+          min_stock?: number;
+          unit_cost?: number;
+          notes?: string | null;
+          is_active?: boolean;
+        };
+        Update: Partial<Database["public"]["Tables"]["materials"]["Insert"]>;
+        Relationships: [];
+      };
+      material_movements: {
+        Row: {
+          id: string;
+          material_id: string;
+          type: MaterialMovementTypeEnum;
+          quantity: number;
+          unit_cost: number | null;
+          movement_date: string;
+          production_record_id: string | null;
+          expense_id: string | null;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          material_id: string;
+          type: MaterialMovementTypeEnum;
+          quantity: number;
+          unit_cost?: number | null;
+          movement_date?: string;
+          expense_id?: string | null;
+          notes?: string | null;
+          created_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["material_movements"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "material_movements_material_id_fkey";
+            columns: ["material_id"];
+            isOneToOne: false;
+            referencedRelation: "materials";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      product_materials: {
+        Row: {
+          product_id: string;
+          material_id: string;
+          quantity_per_unit: number;
+        };
+        Insert: {
+          product_id: string;
+          material_id: string;
+          quantity_per_unit: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["product_materials"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "product_materials_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "product_materials_material_id_fkey";
+            columns: ["material_id"];
+            isOneToOne: false;
+            referencedRelation: "materials";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -241,6 +332,7 @@ export interface Database {
       transaction_type: TransactionTypeEnum;
       discount_type: DiscountTypeEnum;
       promo_status: PromoStatusEnum;
+      material_movement_type: MaterialMovementTypeEnum;
     };
     CompositeTypes: Record<string, never>;
   };
