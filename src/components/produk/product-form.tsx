@@ -198,7 +198,16 @@ export function ProductForm({ product }: ProductFormProps) {
           />
         </Field>
 
-        <Field label="Stok" htmlFor="stock" error={errors.stock}>
+        <Field
+          label={isEditMode ? "Stok (hasil hitung fisik)" : "Stok Awal"}
+          htmlFor="stock"
+          error={errors.stock}
+          hint={
+            isEditMode
+              ? "Stok bertambah otomatis dari produksi selesai dan berkurang dari pesanan selesai. Ubah angka ini hanya bila hitungan fisik berbeda — selisihnya dicatat sebagai penyesuaian."
+              : "Jumlah barang jadi yang sudah ada sekarang. Selanjutnya stok diperbarui otomatis."
+          }
+        >
           <input
             id="stock"
             type="number"
@@ -285,11 +294,13 @@ function Field({
   label,
   htmlFor,
   error,
+  hint,
   children,
 }: {
   label: string;
   htmlFor: string;
   error?: string;
+  hint?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -298,6 +309,7 @@ function Field({
         {label}
       </label>
       {children}
+      {hint && !error && <p className="text-xs text-neutral-500">{hint}</p>}
       {error && (
         <p role="alert" className="text-xs text-danger-600">
           {error}
