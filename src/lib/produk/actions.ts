@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentProfile } from "@/lib/supabase/repositories/profiles-repository";
-import { createProduct, deleteProduct, getProductById, updateProduct } from "@/lib/supabase/repositories/products-repository";
+import { createProduct, deleteProduct, getProductById, setProductStock, updateProduct } from "@/lib/supabase/repositories/products-repository";
 import { createClient } from "@/lib/supabase/server";
 import { PRODUCT_IMAGE_BUCKET, isAllowedProductImage, storagePathFromUrl } from "@/lib/produk/images";
 import { isNonEmptyString, isNonNegativeNumber, type ActionResult } from "@/lib/action-utils";
@@ -52,6 +52,7 @@ function revalidateProducts(id?: string) {
   revalidatePath("/katalog", "layout");
   revalidatePath("/dashboard/pesanan/tambah");
   revalidatePath("/produksi/tambah");
+  revalidatePath("/pemasaran");
   if (id) revalidatePath(`/dashboard/produk/${id}`);
 }
 
@@ -79,7 +80,13 @@ export async function updateProductAction(id: string, input: ProductInput): Prom
 
   const previous = await getProductById(id).catch(() => null);
   try {
-    await updateProduct(id, normalize(input));
+    const { stock, ...rest } = normalize(input);
+    await updateProduct(id, rest);
+    // Stok otomatis dari produksi & pesanan; angka yang diketik admin di form
+    // dianggap hasil hitung fisik dan selisihnya dicatat sebagai penyesuaian.
+    if (!previous || previous.stock !== stock) {
+      await setProductStock(id, stock, "Penyesuaian hitung fisik (form Edit Produk)");
+    }
   } catch {
     return { error: "Gagal memperbarui produk. Mungkin produk sudah dihapus." };
   }

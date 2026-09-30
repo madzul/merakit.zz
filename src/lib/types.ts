@@ -265,6 +265,22 @@ export interface Material {
 }
 
 /** Riwayat pergerakan stok bahan (tabel `material_movements`). */
+export type ProductStockMovementType = "masuk" | "keluar" | "penyesuaian";
+
+/** Satu baris riwayat stok produk jadi (lihat migration-stok-produk.sql). */
+export interface ProductStockMovement {
+  id: string;
+  type: ProductStockMovementType;
+  /** Positif untuk masuk/keluar; penyesuaian boleh negatif. */
+  quantity: number;
+  date: string;
+  /** Asal otomatis: "produksi", "pesanan", atau "manual" (stok awal / hitung fisik). */
+  source: "produksi" | "pesanan" | "manual";
+  /** Keterangan singkat asal pergerakan, mis. nama perajin atau pelanggan. */
+  reference: string;
+  notes: string;
+}
+
 export interface MaterialMovement {
   id: string;
   materialId: string;

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Product } from "@/lib/types";
+import type { Product, ProductStockMovement } from "@/lib/types";
 import type { Tables } from "@/lib/supabase/database.types";
 
 function mapProduct(row: Tables<"products">): Product {
@@ -43,7 +43,10 @@ export async function getProductById(id: string): Promise<Product | null> {
   return data ? mapProduct(data) : null;
 }
 
-/** Hanya admin — ditegakkan RLS. */
+/**
+ * Hanya admin — ditegakkan RLS. `stock` di sini adalah stok awal: trigger
+ * database mencatatnya sebagai "penyesuaian" di riwayat stok.
+ */
 export async function createProduct(input: Omit<Product, "id" | "createdAt">): Promise<Product> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -63,7 +66,7 @@ export async function createProduct(input: Omit<Product, "id" | "createdAt">): P
   return mapProduct(data);
 }
 
-export async function updateProduct(id: string, input: Omit<Product, "id" | "createdAt">): Promise<Product> {
+export async function updateProduct(id: string, input: Omit<Product, "id" | "createdAt" | "stock">): Promise<Product> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("products")
@@ -72,7 +75,8 @@ export async function updateProduct(id: string, input: Omit<Product, "id" | "cre
       category: input.category,
       description: input.description,
       price: input.price,
-      stock: input.stock,
+      // `stock` sengaja tidak ditulis: stok dihitung otomatis dari riwayat
+      // (produksi selesai, pesanan selesai, penyesuaian). Ubah lewat setProductStock.
       image_url: input.imageUrl,
       is_active: input.isActive,
     })
@@ -87,4 +91,50 @@ export async function deleteProduct(id: string): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.from("products").delete().eq("id", id);
   if (error) throw error;
+}
+
+/**
+ * Hitung fisik (stok opname): menyamakan stok sistem dengan `targetStock`.
+ * Selisihnya dicatat sebagai "penyesuaian". Hanya admin (dicek di fungsi
+ * database set_product_stock + RLS).
+ */
+export async function setProductStock(id: string, targetStock: number, note?: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_product_stock", {
+    target_product_id: id,
+    target_stock: targetStock,
+    note: note ?? null,
+  });
+  if (error) throw error;
+}
+
+type StockMovementRow = Tables<"product_stock_movements"> & {
+  production_records: { members: { name: string } | null } | null;
+  orders: { customer_name: string } | null;
+};
+
+/** Riwayat stok terbaru sebuah produk (maks. `limit` baris). */
+export async function getProductStockMovements(productId: string, limit = 20): Promise<ProductStockMovement[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("product_stock_movements")
+    .select("*, production_records(members(name)), orders(customer_name)")
+    .eq("product_id", productId)
+    .order("movement_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return ((data ?? []) as unknown as StockMovementRow[]).map((row) => ({
+    id: row.id,
+    type: row.type,
+    quantity: row.quantity,
+    date: row.movement_date,
+    source: row.production_record_id ? "produksi" : row.order_id ? "pesanan" : "manual",
+    reference: row.production_record_id
+      ? `Produksi ${row.production_records?.members?.name ?? ""}`.trim()
+      : row.order_id
+        ? `Pesanan ${row.orders?.customer_name ?? ""}`.trim()
+        : "",
+    notes: row.notes ?? "",
+  }));
 }
