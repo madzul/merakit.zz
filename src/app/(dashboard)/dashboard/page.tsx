@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
 import { ProductionSalesChart } from "@/components/dashboard/production-sales-chart";
+import { WeeklyProductionChart } from "@/components/dashboard/weekly-production-chart";
 import { MaterialStockCard } from "@/components/dashboard/material-stock-card";
 import { TopMembersCard } from "@/components/dashboard/top-members-card";
 import { RecentActivityCard } from "@/components/dashboard/recent-activity-card";
@@ -22,7 +23,7 @@ const STAT_ICONS: Record<DashboardStatIcon, typeof Boxes> = {
 // "use client" hanya dipakai pada komponen grafik (ProductionSalesChart) karena
 // Recharts membutuhkan lingkungan browser; seksi lain tetap server component.
 export default async function DashboardPage() {
-  const { stats, productionSalesTrend, materialStock, topMembers, activities, quickActions, partialError } =
+  const { stats, productionSalesTrend, weeklyProduction, materialStock, topMembers, activities, quickActions, partialError } =
     await getDashboardData();
 
   return (
@@ -64,6 +65,16 @@ export default async function DashboardPage() {
         </div>
 
         <TopMembersCard members={topMembers} />
+      </div>
+
+      <div className="mt-6 rounded-xl border border-neutral-200 bg-white p-5 shadow-card">
+        <h2 className="text-sm font-semibold text-neutral-800">Produksi Mingguan</h2>
+        <p className="mt-1 text-xs text-neutral-500">
+          Jumlah produksi per minggu (Senin–Minggu) 8 minggu terakhir, dipisah produk layak jual dan cacat.
+        </p>
+        <div className="mt-4">
+          <WeeklyProductionChart data={weeklyProduction} />
+        </div>
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">

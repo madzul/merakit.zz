@@ -26,6 +26,7 @@ interface FormValues {
   name: string;
   phone: string;
   disabilityDescription: string;
+  showInclusiveBadge: boolean;
   status: MemberStatus;
   joinedAt: string;
   notes: string;
@@ -47,6 +48,7 @@ function toFormValues(member?: Member): FormValues {
       name: "",
       phone: "",
       disabilityDescription: "",
+      showInclusiveBadge: false,
       status: "aktif",
       joinedAt: todayIso(),
       notes: "",
@@ -56,6 +58,7 @@ function toFormValues(member?: Member): FormValues {
     name: member.name,
     phone: member.phone,
     disabilityDescription: member.disabilityDescription,
+    showInclusiveBadge: member.showInclusiveBadge,
     status: member.status,
     joinedAt: member.joinedAt,
     notes: member.notes,
@@ -142,6 +145,7 @@ export function MemberForm({ member, mode = "admin" }: MemberFormProps) {
               avatar,
               disabilityDescription: values.disabilityDescription.trim(),
               monthlyProduction: member.monthlyProduction,
+              showInclusiveBadge: values.showInclusiveBadge,
               status: values.status,
               joinedAt: values.joinedAt,
               notes: values.notes.trim(),
@@ -152,6 +156,7 @@ export function MemberForm({ member, mode = "admin" }: MemberFormProps) {
             avatar,
             disabilityDescription: values.disabilityDescription.trim(),
             monthlyProduction: 0,
+            showInclusiveBadge: values.showInclusiveBadge,
             status: values.status,
             joinedAt: values.joinedAt,
             notes: values.notes.trim(),
@@ -262,6 +267,25 @@ export function MemberForm({ member, mode = "admin" }: MemberFormProps) {
               className={cn(inputClassName, "resize-none border-neutral-200 focus:border-primary-500")}
             />
           </Field>
+
+          <div className="rounded-lg border border-neutral-200 p-4">
+            <label htmlFor="showInclusiveBadge" className="flex items-start gap-3">
+              <input
+                id="showInclusiveBadge"
+                type="checkbox"
+                checked={values.showInclusiveBadge}
+                onChange={(event) => setField("showInclusiveBadge", event.target.checked)}
+                className="mt-0.5 h-5 w-5 flex-shrink-0 rounded border-neutral-300 text-primary-700 focus:ring-primary-500"
+              />
+              <span>
+                <span className="block text-sm font-medium text-neutral-800">Tampilkan label &ldquo;Sobat Istimewa&rdquo;</span>
+                <span className="mt-0.5 block text-xs text-neutral-500">
+                  Centang hanya bila anggota ini sudah setuju. Label tampil di daftar dan profil anggota; keterangan kebutuhan
+                  dukungan di atas tetap tidak ditampilkan.
+                </span>
+              </span>
+            </label>
+          </div>
 
           <Field label="Catatan Pendampingan (opsional)" htmlFor="notes">
             <textarea

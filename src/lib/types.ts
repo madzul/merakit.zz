@@ -34,6 +34,17 @@ export interface ProductionTrendPoint {
 }
 
 /** Titik data gabungan untuk grafik Produksi & Penjualan pada halaman dashboard. */
+/** Produksi per minggu (Senin–Minggu) untuk grafik mingguan dashboard. */
+export interface WeeklyProductionPoint {
+  /** Tanggal Senin awal minggu (ISO). */
+  weekStart: string;
+  /** Label sumbu, mis. "7 Sep". */
+  label: string;
+  /** Produk layak (jumlah − cacat). */
+  layak: number;
+  cacat: number;
+}
+
 export interface ProductionSalesPoint {
   bulan: string;
   produksi: number;
@@ -120,8 +131,13 @@ export interface Member {
   avatar: string;
   /** Keterangan kebutuhan dukungan — data sensitif, khusus area admin. */
   disabilityDescription: string;
-  /** Jumlah produksi (pcs) pada bulan berjalan. */
+  /**
+   * Jumlah produksi (pcs) bulan berjalan — dihitung otomatis dari catatan
+   * produksi yang tidak dibatalkan (lihat members-repository), bukan diisi manual.
+   */
   monthlyProduction: number;
+  /** Tampilkan label "Sobat Istimewa" — hanya bila anggota sudah menyetujui. */
+  showInclusiveBadge: boolean;
   status: MemberStatus;
   /** Tanggal bergabung, format ISO ("YYYY-MM-DD"). */
   joinedAt: string;

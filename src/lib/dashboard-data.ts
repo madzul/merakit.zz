@@ -14,6 +14,7 @@ import type {
   Order,
   ProductionRecord,
   ProductionSalesPoint,
+  WeeklyProductionPoint,
   Material,
   QuickAction,
   TopMember,
@@ -50,6 +51,24 @@ function lastMonths(today: string, count: number): { key: string; label: string 
   });
 }
 
+const WEEK_COUNT = 8;
+
+/** `count` minggu terakhir (Senin sebagai awal minggu), urut lama → baru. */
+export function lastWeeks(today: string, count: number): { start: string; end: string; label: string }[] {
+  const date = new Date(`${today}T00:00:00Z`);
+  const mondayOffset = (date.getUTCDay() + 6) % 7;
+  const thisMonday = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() - mondayOffset);
+  return Array.from({ length: count }, (_, index) => {
+    const start = new Date(thisMonday - (count - 1 - index) * 7 * 864e5);
+    const end = new Date(start.getTime() + 6 * 864e5);
+    return {
+      start: start.toISOString().slice(0, 10),
+      end: end.toISOString().slice(0, 10),
+      label: `${start.getUTCDate()} ${MONTH_LABELS[start.getUTCMonth()]}`,
+    };
+  });
+}
+
 const isCountedProduction = (record: ProductionRecord) => record.status !== "dibatalkan";
 const isCompletedOrder = (order: Order) => order.status === "Selesai";
 
@@ -70,6 +89,8 @@ function percentChange(current: number, previous: number): { value: string; dire
 export interface DashboardData {
   stats: DashboardStat[];
   productionSalesTrend: ProductionSalesPoint[];
+  /** 8 minggu terakhir; kosong bila belum ada produksi sama sekali di rentang itu. */
+  weeklyProduction: WeeklyProductionPoint[];
   materialStock: MaterialStockItem[];
   topMembers: TopMember[];
   activities: ActivityItem[];
@@ -166,6 +187,14 @@ export async function getDashboardData(): Promise<DashboardData> {
     produksi: sumQuantity(countedProduction.filter((record) => monthKey(record.productionDate) === key)),
     penjualan: sumRevenue(completedOrders.filter((order) => monthKey(order.orderDate) === key)),
   }));
+  const weeklyProduction: WeeklyProductionPoint[] = lastWeeks(today, WEEK_COUNT).map(({ start, end, label }) => {
+    const weekRecords = countedProduction.filter((record) => record.productionDate >= start && record.productionDate <= end);
+    const total = sumQuantity(weekRecords);
+    const cacat = weekRecords.reduce((sum, record) => sum + (record.rejectQuantity ?? 0), 0);
+    return { weekStart: start, label, layak: total - cacat, cacat };
+  });
+  const hasWeeklyData = weeklyProduction.some((point) => point.layak > 0 || point.cacat > 0);
+
   const hasTrendData = productionSalesTrend.some((point) => point.produksi > 0 || point.penjualan > 0);
 
   const contributionByMember = new Map<string, { name: string; total: number }>();
@@ -200,6 +229,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   return {
     stats,
     productionSalesTrend: hasTrendData ? productionSalesTrend : [],
+    weeklyProduction: hasWeeklyData ? weeklyProduction : [],
     // Bahan aktif, yang paling perlu perhatian (habis → menipis → aman) di atas.
     materialStock: materials
       .filter((material) => material.isActive)
