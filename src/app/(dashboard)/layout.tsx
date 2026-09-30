@@ -50,11 +50,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen w-full bg-neutral-50">
-      <DashboardSidebar role={profile?.role} />
+      <div className="contents print:hidden">
+        <DashboardSidebar role={profile?.role} />
+      </div>
       <MobileSidebar open={mobileNavOpen} onOpenChange={setMobileNavOpen} role={profile?.role} />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <DashboardHeader onMenuClick={() => setMobileNavOpen(true)} profile={profile} />
+        <div className="contents print:hidden">
+          <DashboardHeader onMenuClick={() => setMobileNavOpen(true)} profile={profile} />
+        </div>
         <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </div>
     </div>

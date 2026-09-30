@@ -79,14 +79,16 @@ Seluruh modul data di bawah ini **sudah membaca & menulis ke Supabase** (tidak a
 | Produksi (`/produksi`) | `production_records` | Admin: semua & pilih anggota. Anggota: catatan sendiri (member_id dikunci dari sesi) |
 | Produk (`/dashboard/produk`) | `products` | Semua login bisa lihat; tambah/edit/hapus khusus admin |
 | Pesanan (`/dashboard/pesanan`) | `orders` | Semua login bisa lihat; tambah/edit/ubah status/hapus khusus admin |
+| Keuangan (`/keuangan`) | `expenses` + pesanan `Selesai` dari `orders` | Khusus admin (middleware, cek server, RLS) |
 | Dashboard | Agregasi dari tabel di atas | Angka produksi anggota biasa hanya mencakup produksinya sendiri (RLS) |
+
+**Catatan modul Keuangan:** pemasukan = penjualan otomatis dari pesanan berstatus *Selesai* (berdasarkan tanggal pesanan) + pemasukan lain yang dicatat manual (iuran, hibah, penjualan di luar modul Pesanan). Jangan mencatat ulang penjualan pesanan sebagai transaksi manual agar tidak terhitung dua kali. Laporan bulanan (`/keuangan/laporan?bulan=YYYY-MM`) bisa dicetak/disimpan PDF dari browser dan diunduh sebagai CSV (pemisah `;`, terbaca langsung oleh Excel berbahasa Indonesia).
 
 **Belum diimplementasikan** (halaman masih "Segera Hadir" atau belum ada tabelnya):
 
-- **Keuangan** (`/keuangan`) — tabel `expenses` & repository sudah ada, UI belum.
 - **Pemasaran** & **Promo** — tabel `promotions` & repository sudah ada, UI belum.
 - **Stok & pemakaian bahan baku** — belum ada tabel; kartu stok bahan baku di dashboard sengaja kosong sampai modul ini dibuat.
-- **Laporan usaha bulanan / HPP**, **katalog publik** untuk calon pembeli, dan **unggah foto produk** (kolom `image_url` sudah ada; saat ini memakai gambar placeholder lokal).
+- **HPP per produk**, **katalog publik** untuk calon pembeli, dan **unggah foto produk** (kolom `image_url` sudah ada; saat ini memakai gambar placeholder lokal).
 
 Tidak ada perubahan skema database pada tahap ini — `database-schema.sql` yang sudah dijalankan tetap berlaku. Setelah deploy, data yang tampil adalah data sungguhan di Supabase; jalankan `seed.sql` bila perlu data contoh.
 
@@ -118,6 +120,7 @@ Jalankan manual terhadap URL production (dan idealnya juga preview) setelah depl
 - [ ] **Logout** — sesi benar-benar berakhir; mencoba mengakses `/dashboard` setelah logout mengarahkan ke `/login`.
 - [ ] **Refresh session** — buka tab baru / reload halaman dashboard setelah beberapa saat, pastikan sesi tetap tervalidasi (tidak ter-*log out* mendadak) berkat `middleware.ts`.
 - [ ] **Role admin** — akun `admin` bisa mengakses `/dashboard/anggota` dan `/keuangan`.
+- [ ] **Keuangan** — catat/edit/hapus pemasukan & pengeluaran; ganti bulan; ringkasan menghitung penjualan pesanan selesai; laporan bulanan tercetak rapi (tanpa sidebar) dan CSV terbuka benar di Excel.
 - [ ] **Role member (anggota)** — akun non-admin **tidak** bisa membuka `/dashboard/anggota` atau `/keuangan` (di-redirect ke `/dashboard`), dan menu tersebut tidak tampil di sidebar.
 - [ ] **Dashboard** — statistik, grafik produksi-penjualan, dan kartu ringkasan tampil tanpa error.
 - [ ] **Produksi** — daftar, filter periode/anggota, tambah/edit/hapus berjalan; data tetap ada setelah reload. Akun anggota hanya melihat & mencatat produksinya sendiri.
