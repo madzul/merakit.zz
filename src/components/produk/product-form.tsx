@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 import { LoaderCircle, Save, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PRODUCT_CATEGORY_OPTIONS, PRODUCT_IMAGE_OPTIONS } from "@/lib/product-status";
+import { ProductImageInput } from "@/components/produk/product-image-input";
 import { createProductAction, updateProductAction } from "@/lib/produk/actions";
 import type { Product } from "@/lib/types";
 
@@ -66,6 +67,7 @@ export function ProductForm({ product }: ProductFormProps) {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   function setField<K extends keyof FormValues>(key: K, value: FormValues[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -210,21 +212,6 @@ export function ProductForm({ product }: ProductFormProps) {
           />
         </Field>
 
-        <Field label="Gambar Placeholder" htmlFor="imageUrl">
-          <select
-            id="imageUrl"
-            value={values.imageUrl}
-            onChange={(event) => setField("imageUrl", event.target.value)}
-            className={cn(inputClassName, "pr-8 border-neutral-200 focus:border-primary-500")}
-          >
-            {PRODUCT_IMAGE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </Field>
-
         <Field label="Status Aktif" htmlFor="isActive">
           <select
             id="isActive"
@@ -236,6 +223,15 @@ export function ProductForm({ product }: ProductFormProps) {
             <option value="nonaktif">Nonaktif</option>
           </select>
         </Field>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium text-neutral-700">Foto Produk</span>
+        <ProductImageInput
+          value={values.imageUrl}
+          onChange={(url) => setField("imageUrl", url)}
+          onUploadingChange={setIsUploadingImage}
+        />
       </div>
 
       <Field label="Deskripsi" htmlFor="description" error={errors.description}>
@@ -265,7 +261,7 @@ export function ProductForm({ product }: ProductFormProps) {
         </button>
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || isUploadingImage}
           className="flex items-center justify-center gap-2 rounded-lg bg-primary-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-800 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {isSubmitting ? (
