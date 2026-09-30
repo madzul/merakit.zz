@@ -5,6 +5,8 @@ import { EmptyState } from "@/components/empty-state";
 import { ProductDetail } from "@/components/produk/product-detail";
 import { getCurrentProfile } from "@/lib/supabase/repositories/profiles-repository";
 import { getProductById } from "@/lib/supabase/repositories/products-repository";
+import { getMaterials, getProductRecipe } from "@/lib/supabase/repositories/materials-repository";
+import { ProductRecipe } from "@/components/produk/product-recipe";
 
 interface ProdukDetailPageProps {
   params: Promise<{ id: string }>;
@@ -12,8 +14,13 @@ interface ProdukDetailPageProps {
 
 export default async function ProdukDetailPage({ params }: ProdukDetailPageProps) {
   const { id } = await params;
-  const [product, profile] = await Promise.all([getProductById(id).catch(() => null), getCurrentProfile()]);
+  const [product, profile, recipe] = await Promise.all([
+    getProductById(id).catch(() => null),
+    getCurrentProfile(),
+    getProductRecipe(id).catch(() => []),
+  ]);
   const isAdmin = profile?.role === "admin";
+  const materials = isAdmin ? await getMaterials().catch(() => []) : null;
 
   return (
     <div>
@@ -32,7 +39,10 @@ export default async function ProdukDetailPage({ params }: ProdukDetailPageProps
       />
 
       {product ? (
-        <ProductDetail product={product} canManage={isAdmin} />
+        <div className="space-y-4">
+          <ProductDetail product={product} canManage={isAdmin} />
+          <ProductRecipe key={recipe.map((row) => `${row.materialId}:${row.quantityPerUnit}`).join("|")} productId={product.id} price={product.price} recipe={recipe} materials={materials} />
+        </div>
       ) : (
         <EmptyState message="Data produk tidak ditemukan. Mungkin sudah dihapus atau tautan tidak valid." />
       )}
