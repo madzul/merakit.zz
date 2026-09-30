@@ -12,7 +12,11 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error: errorParam } = await searchParams;
+  const error =
+    errorParam === "layanan-tidak-tersedia"
+      ? "Server data sedang tidak dapat dihubungi. Silakan coba beberapa saat lagi atau hubungi admin."
+      : errorParam;
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4 py-10 sm:px-6">
