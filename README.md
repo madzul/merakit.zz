@@ -42,7 +42,8 @@ Lihat [`.env.example`](./.env.example) untuk daftar lengkap dan penjelasan tiap 
 | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Ya | Project URL Supabase |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Ya | Anon/public key Supabase (aman untuk browser, dibatasi RLS) |
-| `NEXT_PUBLIC_SITE_URL` | Disarankan | Origin production, dipakai untuk tautan reset password |
+| `NEXT_PUBLIC_SITE_URL` | Disarankan | Origin production, dipakai untuk tautan reset password & tautan produk di pesan WhatsApp |
+| `MERAKIT_WHATSAPP_NUMBER` | Opsional | Nomor WhatsApp pemesanan untuk tombol "Pesan via WhatsApp" di katalog publik |
 
 `.env.local` tidak boleh dikomit (sudah diblokir lewat `.gitignore`). Di Vercel, isi variabel yang sama lewat **Project Settings → Environment Variables** — jangan pernah menaruh *service role key* di kode maupun di variabel `NEXT_PUBLIC_*`.
 
@@ -52,6 +53,7 @@ Lihat [`.env.example`](./.env.example) untuk daftar lengkap dan penjelasan tiap 
 2. Jalankan `database-schema.sql` sekali di Supabase SQL Editor (membuat tabel, enum, RLS policy, trigger), lalu jalankan migrasi berikut **berurutan** (keduanya aman diulang):
    - `migration-members-update-own.sql` — anggota boleh mengedit profilnya sendiri (hanya untuk database lama; `database-schema.sql` baru sudah memuatnya).
    - `migration-bahan-baku.sql` — tabel bahan baku, riwayat stok, resep produk, dan trigger pemakaian bahan otomatis dari produksi.
+   - `migration-foto-produk.sql` — bucket Storage publik `product-images` untuk foto produk (unggah/hapus khusus admin).
 3. (Opsional, untuk data contoh) jalankan `seed.sql` — perhatikan seed ini membuat baris berdasarkan email (`admin@merakit.id`, `lina@merakit.id`); buat dulu user tersebut lewat Supabase Auth sebelum menjalankan seed.
 4. Ambil **Project URL** dan **anon/publishable key**: buka project di Supabase Dashboard, klik tombol **Connect** di bagian atas halaman → tab **App Frameworks** (pilih **Next.js**) — kedua nilai sudah siap salin dalam format `.env`. Alternatif lewat menu: sidebar **Project Settings → API Keys** (Project URL ada di sana juga, kadang di sub-tab **Data API**); untuk key, tab **API Keys** menampilkan *publishable key* (format baru `sb_publishable_...`) dan tab **Legacy API Keys** menampilkan *anon key* lama (format JWT `eyJ...`) — keduanya sama-sama valid untuk diisi ke `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Tempel ke `.env.local` untuk lokal, dan ke Environment Variables Vercel untuk deployment.
 
@@ -66,7 +68,7 @@ Ringkasan hasil audit kesiapan deployment:
 - **Dynamic route** — `[id]` dipakai di `dashboard/anggota/[id]`, `dashboard/produk/[id]`, `dashboard/pesanan/[id]`. Semua sudah pakai signature App Router terbaru (`params: Promise<{ id: string }>` + `await params`).
 - **Error handling** — komponen `ErrorState`/`EmptyState` dipakai di level halaman untuk data kosong/gagal muat. Belum ada `error.tsx` (error boundary) atau `not-found.tsx` di level route — direkomendasikan ditambahkan sebelum go-live penuh (lihat catatan di bawah).
 - **Loading UI** — baru ada satu `loading.tsx` (`(dashboard)/dashboard/loading.tsx`, untuk `/dashboard`). Sub-rute lain memakai skeleton manual di dalam komponen client (`loading` state). Cukup untuk saat ini, tapi menambahkan `loading.tsx` di rute lain akan memperbaiki *perceived performance* saat navigasi.
-- **Konfigurasi gambar** — belum ada penggunaan `next/image`; gambar produk memakai placeholder SVG lokal via `<img>` (didokumentasikan dengan komentar eslint-disable). `next.config.ts` belum mengisi `images.remotePatterns`. Jika ke depan foto produk diunggah ke Supabase Storage (kolom `image_url` sudah ada di skema), tambahkan hostname project Supabase ke `images.remotePatterns` di `next.config.ts` sebelum memakai `next/image` untuk gambar tersebut.
+- **Konfigurasi gambar** — foto produk diunggah ke bucket Supabase Storage `product-images` (diperkecil & dikompres di browser, maks. 1200 px, WebP/JPEG) dan ditampilkan lewat `<img>` biasa (komponen `ProductImage`), bukan `next/image`, sehingga `images.remotePatterns` tidak perlu diisi. Server hanya menerima `image_url` berupa placeholder lokal `/products/*` atau URL bucket project sendiri (`src/lib/produk/images.ts`). Foto lama dihapus dari Storage saat diganti atau produknya dihapus.
 - **Font** — `src/app/layout.tsx` di-self-host lewat `next/font/local` (berkas `src/app/fonts/Inter-Variable.woff2`), bukan `next/font/google`. Perubahan ini dilakukan agar `npm run build` tidak bergantung pada koneksi keluar ke `fonts.googleapis.com` saat build (lihat [Troubleshooting build](#troubleshooting-build)). Hasil visual identik (Inter, variable weight 100–900).
 - **Berkas dibersihkan saat audit ini**: `src/login/__page__._tsx_` (berkas duplikat/rusak di luar `src/app`, tidak pernah ter-routing, tidak dipakai di mana pun) dihapus. Halaman login aktif tetap di `src/app/login/page.tsx`.
 
@@ -82,6 +84,7 @@ Seluruh modul data di bawah ini **sudah membaca & menulis ke Supabase** (tidak a
 | Produk (`/dashboard/produk`) | `products` | Semua login bisa lihat; tambah/edit/hapus khusus admin |
 | Pesanan (`/dashboard/pesanan`) | `orders` | Semua login bisa lihat; tambah/edit/ubah status/hapus khusus admin |
 | Keuangan (`/keuangan`) | `expenses` + pesanan `Selesai` dari `orders` | Khusus admin (middleware, cek server, RLS) |
+| Katalog publik (`/katalog`) | `products` aktif (tanpa login) | Siapa pun; produk nonaktif tidak tampil. `/` mengarahkan pengunjung ke sini |
 | Bahan Baku (`/bahan-baku`) | `materials`, `material_movements`, `product_materials` | Semua login bisa lihat stok; kelola bahan, catat stok & resep khusus admin |
 | Dashboard | Agregasi dari tabel di atas | Angka produksi anggota biasa hanya mencakup produksinya sendiri (RLS) |
 
@@ -92,9 +95,8 @@ Seluruh modul data di bawah ini **sudah membaca & menulis ke Supabase** (tidak a
 **Belum diimplementasikan** (halaman masih "Segera Hadir" atau belum ada tabelnya):
 
 - **Pemasaran** & **Promo** — tabel `promotions` & repository sudah ada, UI belum.
-- **Katalog publik** untuk calon pembeli, dan **unggah foto produk** (kolom `image_url` sudah ada; saat ini memakai gambar placeholder lokal).
 
-Modul Bahan Baku membutuhkan `migration-bahan-baku.sql` (lihat [Database Supabase](#database-supabase)). Setelah deploy, data yang tampil adalah data sungguhan di Supabase; jalankan `seed.sql` bila perlu data contoh.
+Modul Bahan Baku membutuhkan `migration-bahan-baku.sql` dan foto produk membutuhkan `migration-foto-produk.sql` (lihat [Database Supabase](#database-supabase)). Setelah deploy, data yang tampil adalah data sungguhan di Supabase; jalankan `seed.sql` bila perlu data contoh.
 
 Halaman `/anggota`, `/pesanan`, `/produk` (tanpa prefiks `/dashboard`) juga masih ada sebagai halaman "Coming Soon" — sudah tidak ditautkan dari sidebar (menu mengarah ke `/dashboard/anggota`, dll.) tapi tetap bisa diakses langsung lewat URL. Aman untuk di-deploy (tidak error), namun disarankan dirapikan/dihapus di iterasi berikutnya agar tidak membingungkan pengguna.
 
@@ -124,6 +126,8 @@ Jalankan manual terhadap URL production (dan idealnya juga preview) setelah depl
 - [ ] **Logout** — sesi benar-benar berakhir; mencoba mengakses `/dashboard` setelah logout mengarahkan ke `/login`.
 - [ ] **Refresh session** — buka tab baru / reload halaman dashboard setelah beberapa saat, pastikan sesi tetap tervalidasi (tidak ter-*log out* mendadak) berkat `middleware.ts`.
 - [ ] **Role admin** — akun `admin` bisa mengakses `/dashboard/anggota` dan `/keuangan`.
+- [ ] **Katalog publik** — buka `/katalog` di jendela penyamaran: produk aktif tampil lengkap dengan foto, produk nonaktif tidak; filter kategori & pencarian; tombol WhatsApp membuka chat dengan pesan terisi (bila `MERAKIT_WHATSAPP_NUMBER` diisi).
+- [ ] **Foto produk** — unggah foto dari HP di form produk, simpan, cek tampil di dashboard & katalog; ganti foto → foto lama terhapus dari Storage.
 - [ ] **Bahan Baku** — tambah bahan dengan stok awal; catat masuk (centang "catat ke Keuangan" → muncul di Keuangan); atur resep di detail produk dan lihat HPP/margin; catat produksi produk itu → stok bahan berkurang otomatis; batalkan produksi → stok kembali.
 - [ ] **Keuangan** — catat/edit/hapus pemasukan & pengeluaran; ganti bulan; ringkasan menghitung penjualan pesanan selesai; laporan bulanan tercetak rapi (tanpa sidebar) dan CSV terbuka benar di Excel.
 - [ ] **Role member (anggota)** — akun non-admin **tidak** bisa membuka `/dashboard/anggota` atau `/keuangan` (di-redirect ke `/dashboard`), dan menu tersebut tidak tampil di sidebar.

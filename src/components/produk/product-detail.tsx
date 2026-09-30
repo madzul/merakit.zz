@@ -5,12 +5,12 @@ import { AlertTriangle, CalendarDays, Pencil, Tag } from "lucide-react";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import {
   PRODUCT_ACTIVE_BADGE_STYLES,
-  PRODUCT_PLACEHOLDER_IMAGE,
   PRODUCT_ACTIVE_LABELS,
   activeKey,
   isLowStock,
   isOutOfStock,
 } from "@/lib/product-status";
+import { ProductImage } from "@/components/produk/product-image";
 import type { Product } from "@/lib/types";
 
 interface ProductDetailProps {
@@ -28,12 +28,7 @@ export function ProductDetail({ product, canManage = true }: ProductDetailProps)
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-card lg:col-span-1">
         <div className="relative aspect-square w-full bg-neutral-50">
-          {/* eslint-disable-next-line @next/next/no-img-element -- gambar placeholder lokal (SVG statis) */}
-          <img
-            src={product.imageUrl || PRODUCT_PLACEHOLDER_IMAGE}
-            alt={`Gambar placeholder produk ${product.name}`}
-            className="absolute inset-0 h-full w-full object-contain p-8"
-          />
+          <ProductImage src={product.imageUrl} name={product.name} placeholderPadding="p-8" />
         </div>
       </div>
 
