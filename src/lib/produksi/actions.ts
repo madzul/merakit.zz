@@ -48,6 +48,8 @@ async function resolveMemberId(input: ProductionFormInput): Promise<{ memberId?:
 function revalidateProduction() {
   revalidatePath("/produksi");
   revalidatePath("/dashboard");
+  // Pemakaian bahan dicatat otomatis oleh trigger database dari resep produk.
+  revalidatePath("/bahan-baku", "layout");
   revalidatePath("/dashboard/anggota", "layout");
 }
 

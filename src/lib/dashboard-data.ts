@@ -3,6 +3,8 @@ import { getOrders } from "@/lib/supabase/repositories/orders-repository";
 import { getProducts } from "@/lib/supabase/repositories/products-repository";
 import { getProductionRecordsBetween } from "@/lib/supabase/repositories/production-repository";
 import { getCurrentProfile } from "@/lib/supabase/repositories/profiles-repository";
+import { getMaterials } from "@/lib/supabase/repositories/materials-repository";
+import { stockLevel } from "@/lib/bahan-baku/constants";
 import { formatDate, formatRupiah } from "@/lib/utils";
 import type {
   ActivityItem,
@@ -12,6 +14,7 @@ import type {
   Order,
   ProductionRecord,
   ProductionSalesPoint,
+  Material,
   QuickAction,
   TopMember,
 } from "@/lib/types";
@@ -80,8 +83,8 @@ export interface DashboardData {
  * produk, anggota). RLS berlaku: anggota biasa hanya melihat produksinya
  * sendiri, jadi angka produksi di dashboard mereka bersifat pribadi.
  *
- * Stok bahan baku belum punya tabel di database — kartu tersebut sengaja
- * dikosongkan (bukan diisi angka contoh) sampai modul bahan baku dibuat.
+ * Kartu stok bahan menampilkan maks. 5 bahan aktif dari tabel `materials`,
+ * diurutkan dari yang paling perlu dibeli.
  */
 export async function getDashboardData(): Promise<DashboardData> {
   const today = todayInJakarta();
@@ -93,18 +96,20 @@ export async function getDashboardData(): Promise<DashboardData> {
   const profile = await getCurrentProfile().catch(() => null);
   const isAdmin = profile?.role === "admin";
 
-  const [productionResult, ordersResult, productsResult, membersResult] = await Promise.allSettled([
+  const [productionResult, ordersResult, productsResult, membersResult, materialsResult] = await Promise.allSettled([
     getProductionRecordsBetween(rangeStart, today),
     getOrders(),
     getProducts(),
     isAdmin ? getMembers() : Promise.resolve([] as Member[]),
+    getMaterials(),
   ]);
 
   const production = productionResult.status === "fulfilled" ? productionResult.value : [];
   const orders = ordersResult.status === "fulfilled" ? ordersResult.value : [];
   const products = productsResult.status === "fulfilled" ? productsResult.value : [];
   const members = membersResult.status === "fulfilled" ? membersResult.value : [];
-  const partialError = [productionResult, ordersResult, productsResult, membersResult].some(
+  const materials: Material[] = materialsResult.status === "fulfilled" ? materialsResult.value : [];
+  const partialError = [productionResult, ordersResult, productsResult, membersResult, materialsResult].some(
     (result) => result.status === "rejected"
   );
 
@@ -195,7 +200,18 @@ export async function getDashboardData(): Promise<DashboardData> {
   return {
     stats,
     productionSalesTrend: hasTrendData ? productionSalesTrend : [],
-    materialStock: [],
+    // Bahan aktif, yang paling perlu perhatian (habis → menipis → aman) di atas.
+    materialStock: materials
+      .filter((material) => material.isActive)
+      .map((material) => ({
+        id: material.id,
+        name: material.name,
+        quantity: material.stock,
+        unit: material.unit,
+        status: stockLevel(material),
+      }))
+      .sort((a, b) => ["habis", "menipis", "aman"].indexOf(a.status) - ["habis", "menipis", "aman"].indexOf(b.status))
+      .slice(0, 5),
     topMembers,
     activities,
     quickActions: ALL_QUICK_ACTIONS.filter((action) => isAdmin || !action.adminOnly).map((action) => ({

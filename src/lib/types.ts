@@ -240,3 +240,45 @@ export interface Promo {
   validUntil: string;
   status: PromoStatus;
 }
+
+export type MaterialMovementType = "masuk" | "keluar" | "penyesuaian";
+export type MaterialStockLevel = "aman" | "menipis" | "habis";
+
+/** Bahan baku (tabel `materials`). `stock` dihitung otomatis dari riwayat pergerakan. */
+export interface Material {
+  id: string;
+  name: string;
+  unit: string;
+  stock: number;
+  minStock: number;
+  /** Harga per satuan terakhir (Rp). */
+  unitCost: number;
+  notes: string;
+  isActive: boolean;
+}
+
+/** Riwayat pergerakan stok bahan (tabel `material_movements`). */
+export interface MaterialMovement {
+  id: string;
+  materialId: string;
+  materialName: string;
+  type: MaterialMovementType;
+  /** Positif untuk masuk/keluar; penyesuaian boleh negatif. */
+  quantity: number;
+  unitCost: number | null;
+  date: string;
+  /** Terisi bila dibuat otomatis dari catatan produksi (tidak bisa diubah manual). */
+  productionRecordId: string | null;
+  expenseId: string | null;
+  notes: string;
+}
+
+/** Satu baris resep: kebutuhan bahan untuk 1 pcs produk (tabel `product_materials`). */
+export interface ProductMaterial {
+  productId: string;
+  materialId: string;
+  materialName: string;
+  unit: string;
+  quantityPerUnit: number;
+  unitCost: number;
+}
