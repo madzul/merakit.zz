@@ -87,10 +87,17 @@ export function OrderDetail({ order: initialOrder, canManage = true }: OrderDeta
           <p className="mt-1 text-xs text-neutral-400">
             {order.quantity} pcs &times; {formatCurrency(order.unitPrice)}
           </p>
+          <p className="mt-1 text-xs text-neutral-500">Sumber: {order.source}</p>
         </div>
         <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-card">
           <p className="text-sm font-medium text-neutral-500">Total Bayar</p>
           <p className="mt-2 text-2xl font-semibold text-neutral-800">{formatCurrency(order.totalAmount)}</p>
+          {order.discountAmount > 0 && (
+            <p className="mt-1 text-xs text-success-600">
+              Hemat {formatCurrency(order.discountAmount)}
+              {order.promotionCode ? ` dengan kode ${order.promotionCode}` : ""}
+            </p>
+          )}
         </div>
       </div>
 

@@ -202,9 +202,16 @@ export interface Order {
   productName: string;
   quantity: number;
   unitPrice: number;
+  /** Harga akhir = jumlah × harga satuan − diskon. */
   totalAmount: number;
   status: OrderStatus;
   notes: string;
+  /** Asal pesanan (WhatsApp, Katalog Online, Bazar, dst.) — untuk analisis pemasaran. */
+  source: string;
+  promotionId: string | null;
+  /** Kode promo yang dipakai (hasil join), kosong bila tanpa promo. */
+  promotionCode: string;
+  discountAmount: number;
 }
 
 export type TransactionType = "pemasukan" | "pengeluaran";
