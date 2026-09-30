@@ -9,6 +9,7 @@ import { getCurrentProfile } from "@/lib/supabase/repositories/profiles-reposito
 import { getProductionRecordsByMember } from "@/lib/supabase/repositories/production-repository";
 import { getLoginAccounts } from "@/lib/supabase/repositories/accounts-repository";
 import { MemberAccountLink } from "@/components/anggota/member-account-link";
+import { isAccountCreationEnabled } from "@/lib/supabase/admin";
 
 interface AnggotaDetailPageProps {
   params: Promise<{ id: string }>;
@@ -60,7 +61,15 @@ export default async function AnggotaDetailPage({ params }: AnggotaDetailPagePro
       {member ? (
         <div className="space-y-4">
           <MemberDetail member={member} isAdmin={isAdmin} canEdit={canEdit} productionRecords={productionRecords} />
-          {isAdmin && accounts && <MemberAccountLink memberId={member.id} memberName={member.name} accounts={accounts} />}
+          {isAdmin && accounts && (
+            <MemberAccountLink
+              memberId={member.id}
+              memberName={member.name}
+              accounts={accounts}
+              currentProfileId={profile.id}
+              canCreateAccount={isAccountCreationEnabled()}
+            />
+          )}
         </div>
       ) : (
         <EmptyState message="Data anggota tidak ditemukan. Mungkin sudah dihapus atau tautan tidak valid." />

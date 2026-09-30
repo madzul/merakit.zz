@@ -14,7 +14,7 @@ export default async function ResetPasswordPage() {
       <div className="w-full max-w-md">
         <div className="mb-6 flex flex-col items-center text-center">
           <MerakitLogo size="lg" />
-          <h1 className="mt-4 text-xl font-semibold text-neutral-800 sm:text-2xl">Atur Ulang Password</h1>
+          <h1 className="mt-4 text-xl font-semibold text-neutral-800 sm:text-2xl">Ganti Password</h1>
         </div>
 
         <div className="relative overflow-hidden rounded-2xl bg-primary-50 p-5 sm:p-8">
