@@ -1,5 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { createFetchWithTimeout } from "@/lib/supabase/fetch-with-timeout";
+
+// Jauh di bawah batas 25 detik Vercel, supaya middleware tidak pernah 504.
+const SUPABASE_TIMEOUT_MS = 5000;
 
 // Seluruh route di dalam grup (dashboard) — hanya boleh diakses setelah login.
 const PROTECTED_PATHS = ["/dashboard", "/produksi", "/keuangan", "/pemasaran", "/promo"];
@@ -23,6 +27,7 @@ export async function updateSession(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      global: { fetch: createFetchWithTimeout(SUPABASE_TIMEOUT_MS) },
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -40,16 +45,27 @@ export async function updateSession(request: NextRequest) {
 
   // PENTING: getUser() memvalidasi token ke server Supabase (bukan sekadar
   // membaca cookie), sehingga sesi selalu tervalidasi & ter-refresh.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Bila Supabase tidak merespons (timeout/jaringan), anggap belum login
+  // dan tandai supaya halaman login bisa menjelaskan penyebabnya.
+  let user: Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"] = null;
+  let authUnavailable = false;
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    user = data.user;
+    // AuthRetryableFetchError = gagal menjangkau Supabase (termasuk timeout).
+    if (error?.name === "AuthRetryableFetchError") authUnavailable = true;
+  } catch {
+    authUnavailable = true;
+  }
 
   const { pathname } = request.nextUrl;
 
   if (!user && matchesPath(PROTECTED_PATHS, pathname)) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
+    redirectUrl.search = "";
     redirectUrl.searchParams.set("redirectTo", pathname);
+    if (authUnavailable) redirectUrl.searchParams.set("error", "layanan-tidak-tersedia");
     return NextResponse.redirect(redirectUrl);
   }
 
@@ -70,7 +86,11 @@ export async function updateSession(request: NextRequest) {
       .from("profiles")
       .select("role")
       .eq("id", user.id)
-      .maybeSingle();
+      .maybeSingle()
+      .then(
+        (result) => result,
+        () => ({ data: null })
+      );
 
     if (profile?.role !== "admin") {
       const redirectUrl = request.nextUrl.clone();

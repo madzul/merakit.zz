@@ -23,7 +23,13 @@ async function getTrustedOrigin(): Promise<string> {
 
 type ActionResult = { error?: string; success?: boolean };
 
-function mapAuthError(message: string): string {
+const SERVICE_UNAVAILABLE_MESSAGE =
+  "Server data sedang tidak dapat dihubungi. Silakan coba beberapa saat lagi atau hubungi admin.";
+
+function mapAuthError(message: string, name?: string): string {
+  if (name === "AuthRetryableFetchError" || /fetch|abort|timeout/i.test(message)) {
+    return SERVICE_UNAVAILABLE_MESSAGE;
+  }
   if (message.includes("Invalid login credentials")) {
     return "Email atau password salah.";
   }
@@ -36,13 +42,18 @@ function mapAuthError(message: string): string {
 /** Login email/password. */
 export async function login(input: { email: string; password: string }): Promise<ActionResult> {
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
-    email: input.email,
-    password: input.password,
-  });
+  let error: { message: string; name?: string } | null = null;
+  try {
+    ({ error } = await supabase.auth.signInWithPassword({
+      email: input.email,
+      password: input.password,
+    }));
+  } catch {
+    return { error: SERVICE_UNAVAILABLE_MESSAGE };
+  }
 
   if (error) {
-    return { error: mapAuthError(error.message) };
+    return { error: mapAuthError(error.message, error.name) };
   }
   return { success: true };
 }
