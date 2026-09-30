@@ -7,8 +7,7 @@ import { cn, formatDate, formatPhoneDisplay, getAvatarColorClass, toWhatsAppLink
 import { EmptyState } from "@/components/empty-state";
 import { PRODUCTION_STATUS_BADGE_STYLES, PRODUCTION_STATUS_LABELS } from "@/lib/production-status";
 import { MEMBER_STATUS_BADGE_STYLES, MEMBER_STATUS_LABELS } from "@/lib/member-status";
-import { PRODUCTION_RECORDS } from "@/lib/mock-data";
-import type { Member } from "@/lib/types";
+import type { Member, ProductionRecord } from "@/lib/types";
 
 interface MemberDetailProps {
   member: Member;
@@ -21,6 +20,8 @@ interface MemberDetailProps {
    * melihat profilnya sendiri.
    */
   isAdmin?: boolean;
+  /** Catatan produksi milik anggota ini (dari Supabase, dimuat di server). */
+  productionRecords?: ProductionRecord[];
 }
 
 /**
@@ -30,13 +31,11 @@ interface MemberDetailProps {
  * berisi keterangan kebutuhan dukungan yang sensitif — selalu disembunyikan
  * dari non-admin, siapa pun subjeknya.
  */
-export function MemberDetail({ member, canEdit = false, isAdmin = false }: MemberDetailProps) {
+export function MemberDetail({ member, canEdit = false, isAdmin = false, productionRecords = [] }: MemberDetailProps) {
   const productionHistory = useMemo(
     () =>
-      PRODUCTION_RECORDS.filter((record) => record.memberName === member.name).sort((a, b) =>
-        b.productionDate.localeCompare(a.productionDate)
-      ),
-    [member.name]
+      [...productionRecords].sort((a, b) => b.productionDate.localeCompare(a.productionDate)),
+    [productionRecords]
   );
 
   const totalProduction = useMemo(

@@ -11,6 +11,8 @@ interface ProductFiltersProps {
   onSearchChange: (value: string) => void;
   onReset: () => void;
   hasActiveFilters: boolean;
+  /** Tampilkan tombol tambah (khusus admin). */
+  canCreate?: boolean;
 }
 
 const selectClassName =
@@ -24,6 +26,7 @@ export function ProductFilters({
   onSearchChange,
   onReset,
   hasActiveFilters,
+  canCreate = true,
 }: ProductFiltersProps) {
   return (
     <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-card">
@@ -79,6 +82,7 @@ export function ProductFilters({
             <span className="hidden sm:inline">Reset Filter</span>
           </button>
 
+          {canCreate && (
           <Link
             href="/dashboard/produk/tambah"
             className="flex items-center gap-1.5 rounded-lg bg-primary-700 px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-800"
@@ -86,6 +90,7 @@ export function ProductFilters({
             <Plus className="h-4 w-4" aria-hidden="true" />
             Tambah Produk
           </Link>
+          )}
         </div>
       </div>
     </div>

@@ -70,15 +70,25 @@ Ringkasan hasil audit kesiapan deployment:
 
 ## Status modul (data mock vs Supabase)
 
-Autentikasi (`src/lib/auth/actions.ts`, login/logout/reset password) **sudah** memakai Supabase Auth sungguhan. Namun modul data berikut **masih memakai in-memory mock store** (`src/lib/*-store.ts`, diseed dari `src/lib/mock-data.ts`) meski repository Supabase untuk modul tersebut sudah tersedia di `src/lib/supabase/repositories/`:
+Seluruh modul data di bawah ini **sudah membaca & menulis ke Supabase** (tidak ada lagi in-memory mock store). Mutasi lewat Server Action (`src/lib/*/actions.ts`) yang memvalidasi input & peran di server, dengan RLS di `database-schema.sql` sebagai lapisan pertahanan utama.
 
-- Data Anggota (`member-store.ts`)
-- Produk (`product-store.ts`)
-- Pesanan (`order-store.ts`)
-- Produksi (`production-store.ts`)
-- Dashboard (`dashboard-data.ts`)
+| Modul | Sumber data | Hak akses |
+| --- | --- | --- |
+| Autentikasi | Supabase Auth | — |
+| Anggota | `members` | Admin: semua. Anggota: profil sendiri |
+| Produksi (`/produksi`) | `production_records` | Admin: semua & pilih anggota. Anggota: catatan sendiri (member_id dikunci dari sesi) |
+| Produk (`/dashboard/produk`) | `products` | Semua login bisa lihat; tambah/edit/hapus khusus admin |
+| Pesanan (`/dashboard/pesanan`) | `orders` | Semua login bisa lihat; tambah/edit/ubah status/hapus khusus admin |
+| Dashboard | Agregasi dari tabel di atas | Angka produksi anggota biasa hanya mencakup produksinya sendiri (RLS) |
 
-Ini disebutkan langsung di komentar kode sumbernya sebagai data dummy sementara. Konsekuensinya untuk deployment: perubahan data pada modul-modul ini **tidak tersimpan permanen** dan **tidak sinkron antar pengguna/sesi** di production — data akan kembali ke seed setiap reload penuh/redeploy. Ini bukan bug dari proses deployment, tapi status pengembangan fitur yang perlu diketahui sebelum uji terima pengguna. Menyambungkan halaman-halaman ini ke `src/lib/supabase/repositories/*` yang sudah ada adalah pekerjaan tahap berikutnya di luar cakupan persiapan deployment ini.
+**Belum diimplementasikan** (halaman masih "Segera Hadir" atau belum ada tabelnya):
+
+- **Keuangan** (`/keuangan`) — tabel `expenses` & repository sudah ada, UI belum.
+- **Pemasaran** & **Promo** — tabel `promotions` & repository sudah ada, UI belum.
+- **Stok & pemakaian bahan baku** — belum ada tabel; kartu stok bahan baku di dashboard sengaja kosong sampai modul ini dibuat.
+- **Laporan usaha bulanan / HPP**, **katalog publik** untuk calon pembeli, dan **unggah foto produk** (kolom `image_url` sudah ada; saat ini memakai gambar placeholder lokal).
+
+Tidak ada perubahan skema database pada tahap ini — `database-schema.sql` yang sudah dijalankan tetap berlaku. Setelah deploy, data yang tampil adalah data sungguhan di Supabase; jalankan `seed.sql` bila perlu data contoh.
 
 Halaman `/anggota`, `/pesanan`, `/produk` (tanpa prefiks `/dashboard`) juga masih ada sebagai halaman "Coming Soon" — sudah tidak ditautkan dari sidebar (menu mengarah ke `/dashboard/anggota`, dll.) tapi tetap bisa diakses langsung lewat URL. Aman untuk di-deploy (tidak error), namun disarankan dirapikan/dihapus di iterasi berikutnya agar tidak membingungkan pengguna.
 
@@ -110,10 +120,10 @@ Jalankan manual terhadap URL production (dan idealnya juga preview) setelah depl
 - [ ] **Role admin** — akun `admin` bisa mengakses `/dashboard/anggota` dan `/keuangan`.
 - [ ] **Role member (anggota)** — akun non-admin **tidak** bisa membuka `/dashboard/anggota` atau `/keuangan` (di-redirect ke `/dashboard`), dan menu tersebut tidak tampil di sidebar.
 - [ ] **Dashboard** — statistik, grafik produksi-penjualan, dan kartu ringkasan tampil tanpa error.
-- [ ] **Produksi** — daftar, filter periode/anggota, tambah data produksi berjalan.
-- [ ] **Anggota** — daftar, detail, tambah anggota berjalan (ingat: masih data mock, lihat [Status modul](#status-modul-data-mock-vs-supabase)).
-- [ ] **Produk** — daftar/grid produk, filter, detail, tambah produk berjalan.
-- [ ] **Pesanan** — daftar, detail, tambah pesanan, ubah status pesanan berjalan.
+- [ ] **Produksi** — daftar, filter periode/anggota, tambah/edit/hapus berjalan; data tetap ada setelah reload. Akun anggota hanya melihat & mencatat produksinya sendiri.
+- [ ] **Anggota** — daftar, detail (termasuk riwayat produksi anggota), tambah anggota berjalan.
+- [ ] **Produk** — daftar/grid produk, filter, detail berjalan; tombol tambah/edit/hapus hanya muncul untuk admin.
+- [ ] **Pesanan** — daftar, detail, tambah pesanan, ubah status berjalan (admin); akun anggota hanya bisa melihat.
 - [ ] **Mobile layout** — sidebar berubah jadi menu mobile (`MobileSidebar`), tabel/kartu tidak overflow horizontal, tombol & form tetap terjangkau di layar kecil.
 - [ ] **Error handling** — matikan/salahkan sementara env var Supabase di Preview untuk memastikan halaman gagal-muat menampilkan `ErrorState`/pesan yang wajar, bukan crash tanpa penjelasan; juga cek halaman untuk ID yang tidak ada (mis. `/dashboard/anggota/id-tidak-ada`) menampilkan `EmptyState`.
 
