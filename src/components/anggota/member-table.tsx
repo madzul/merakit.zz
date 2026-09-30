@@ -1,5 +1,6 @@
 "use client";
 
+import { InclusiveBadge } from "@/components/anggota/inclusive-badge";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -94,6 +95,7 @@ export function MemberTable({
                         {member.avatar}
                       </span>
                       <span className="font-medium text-neutral-800 hover:text-primary-700">{member.name}</span>
+                      {member.showInclusiveBadge && <InclusiveBadge />}
                     </Link>
                   </td>
                   <td className="whitespace-nowrap px-4 py-3">
