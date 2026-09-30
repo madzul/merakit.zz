@@ -49,3 +49,11 @@ export async function setMemberAccount(memberId: string, profileId: string | nul
   if (error) throw error;
   if (!data || data.length === 0) throw new Error("Anggota tidak ditemukan atau tidak boleh diubah.");
 }
+
+/** Ubah peran profil. Hanya admin (RLS profiles_update_own_or_admin + trigger protect_profile_role). */
+export async function updateProfileRole(profileId: string, role: "admin" | "anggota"): Promise<void> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("profiles").update({ role }).eq("id", profileId).select("id, role");
+  if (error) throw error;
+  if (!data || data.length === 0 || data[0].role !== role) throw new Error("Peran tidak berubah.");
+}
