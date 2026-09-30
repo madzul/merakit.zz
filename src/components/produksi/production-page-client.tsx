@@ -6,9 +6,10 @@ import { ErrorState } from "@/components/error-state";
 import { ProductionSummary } from "@/components/produksi/production-summary";
 import { ProductionFilters } from "@/components/produksi/production-filters";
 import { ProductionTable } from "@/components/produksi/production-table";
+import { ProductionMemberRecap } from "@/components/produksi/production-member-recap";
 import { ToastViewport, useToast } from "@/components/ui/toast";
 import { deleteProductionAction } from "@/lib/produksi/actions";
-import { isWithinPeriod, type ProductionPeriod } from "@/lib/production-status";
+import { PRODUCTION_PERIOD_OPTIONS, isWithinPeriod, type ProductionPeriod } from "@/lib/production-status";
 import type { ProductionRecord } from "@/lib/types";
 
 const PAGE_SIZE = 5;
@@ -108,6 +109,11 @@ export function ProductionPageClient({ records, loadError }: ProductionPageClien
         totalRecords={filteredRecords.length}
         onPageChange={setPage}
         onDelete={handleDelete}
+      />
+
+      <ProductionMemberRecap
+        records={filteredRecords}
+        periodLabel={PRODUCTION_PERIOD_OPTIONS.find((option) => option.value === period)?.label ?? "Semua Periode"}
       />
 
       <ToastViewport toast={toast} onDismiss={dismissToast} />
