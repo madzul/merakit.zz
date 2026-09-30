@@ -179,3 +179,48 @@ export function buildProductionPlan(
     })
     .sort((a, b) => b.shortfall - a.shortfall || b.suggested - a.suggested || a.productName.localeCompare(b.productName));
 }
+
+/** Periode pembanding: rentang `days` hari tepat sebelum `from`. */
+export function previousPeriod(from: string, days: number): { from: string; to: string } {
+  const date = new Date(`${from}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - 1);
+  const to = date.toISOString().slice(0, 10);
+  return { from: periodStart(to, days), to };
+}
+
+/**
+ * Perubahan terhadap periode sebelumnya, dalam format kartu statistik.
+ * `undefined` bila periode sebelumnya kosong (persentase tidak bermakna).
+ */
+export function changeVersus(current: number, previous: number): { value: string; direction: "up" | "down" } | undefined {
+  if (previous <= 0) return undefined;
+  const change = Math.round(((current - previous) / previous) * 100);
+  return { value: `${change >= 0 ? "+" : ""}${change}% vs periode sebelumnya`, direction: change >= 0 ? "up" : "down" };
+}
+
+const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
+
+export interface MonthlyOrderCount {
+  /** "YYYY-MM" */
+  month: string;
+  label: string;
+  orders: number;
+  value: number;
+}
+
+/** Jumlah & nilai pesanan (tidak termasuk batal) per bulan, `count` bulan terakhir sampai `today`. */
+export function monthlyOrderCounts(orders: Order[], today: string, count = 6): MonthlyOrderCount[] {
+  const year = Number(today.slice(0, 4));
+  const month = Number(today.slice(5, 7)) - 1;
+  return Array.from({ length: count }, (_, index) => {
+    const date = new Date(Date.UTC(year, month - (count - 1 - index), 1));
+    const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+    const monthOrders = orders.filter((order) => isCounted(order) && order.orderDate.startsWith(key));
+    return {
+      month: key,
+      label: `${SHORT_MONTHS[date.getUTCMonth()]} ${date.getUTCFullYear()}`,
+      orders: monthOrders.length,
+      value: monthOrders.reduce((sum, order) => sum + order.totalAmount, 0),
+    };
+  });
+}

@@ -10,6 +10,7 @@ export interface Crumb {
 const SEGMENT_LABELS: Record<string, string> = {
   tambah: "Tambah",
   laporan: "Laporan Bulanan",
+  sisa: "Sisa Bahan",
 };
 
 /**

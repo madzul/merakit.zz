@@ -19,7 +19,7 @@ interface ProductionTableProps {
   onDelete: (id: string) => void | Promise<void>;
 }
 
-const COLUMN_COUNT = 8;
+const COLUMN_COUNT = 9;
 
 export function ProductionTable({
   records,
@@ -50,13 +50,14 @@ export function ProductionTable({
     <div className="rounded-xl border border-neutral-200 bg-white shadow-card">
       {/* Desktop / tablet: tabel dengan horizontal scroll agar tetap usable di layar sempit */}
       <div className="hidden overflow-x-auto sm:block">
-        <table className="w-full min-w-[860px] text-left text-sm">
+        <table className="w-full min-w-[940px] text-left text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-xs font-medium uppercase tracking-wide text-neutral-500">
               <th className="px-4 py-3">Tanggal</th>
               <th className="px-4 py-3">Nama Anggota</th>
               <th className="px-4 py-3">Produk</th>
               <th className="px-4 py-3">Jumlah</th>
+              <th className="px-4 py-3">Cacat</th>
               <th className="px-4 py-3">Durasi</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Catatan</th>
@@ -79,6 +80,9 @@ export function ProductionTable({
                   <td className="px-4 py-3">{record.memberName}</td>
                   <td className="px-4 py-3">{record.productName}</td>
                   <td className="px-4 py-3">{record.quantity} pcs</td>
+                  <td className={cn("px-4 py-3", record.rejectQuantity > 0 ? "text-danger-600" : "text-neutral-400")}>
+                    {record.rejectQuantity} pcs
+                  </td>
                   <td className="whitespace-nowrap px-4 py-3">{formatDuration(record.duration)}</td>
                   <td className="px-4 py-3">
                     <StatusBadge status={record.status} />
@@ -143,6 +147,10 @@ export function ProductionTable({
                 <p>
                   <span className="text-neutral-400">Jumlah: </span>
                   {record.quantity} pcs
+                </p>
+                <p>
+                  <span className="text-neutral-400">Cacat: </span>
+                  {record.rejectQuantity} pcs
                 </p>
                 <p>
                   <span className="text-neutral-400">Durasi: </span>

@@ -7,7 +7,10 @@ import { BarList } from "@/components/pemasaran/bar-list";
 import {
   PERIOD_OPTIONS,
   buildProductionPlan,
+  changeVersus,
+  monthlyOrderCounts,
   parsePeriod,
+  previousPeriod,
   periodStart,
   summarizeMarketing,
 } from "@/lib/pemasaran/analytics";
@@ -48,6 +51,10 @@ export default async function PemasaranPage({ searchParams }: PemasaranPageProps
 
   const periodOrders = orders.filter((order) => order.orderDate >= from && order.orderDate <= today);
   const summary = summarizeMarketing(periodOrders);
+  // Indikator "peningkatan jumlah pesanan": bandingkan dengan periode sebelumnya yang sama panjang.
+  const previous = previousPeriod(from, days);
+  const previousSummary = summarizeMarketing(orders.filter((order) => order.orderDate >= previous.from && order.orderDate <= previous.to));
+  const monthly = monthlyOrderCounts(orders, today);
   const openOrders = orders.filter((order) => order.status === "Menunggu" || order.status === "Diproses");
   const plan = buildProductionPlan(products, openOrders, summary.topProducts, days);
   const planNeeded = plan.filter((row) => row.suggested > 0 || row.openDemand > 0);
@@ -89,13 +96,21 @@ export default async function PemasaranPage({ searchParams }: PemasaranPageProps
             value={`${summary.orderCount} pesanan`}
             icon={ClipboardList}
             tone="info"
-            description={summary.cancelledCount > 0 ? `${summary.cancelledCount} dibatalkan (tidak dihitung)` : undefined}
+            trend={changeVersus(summary.orderCount, previousSummary.orderCount)}
+            description={
+              previousSummary.orderCount > 0
+                ? `sebelumnya ${previousSummary.orderCount}`
+                : summary.cancelledCount > 0
+                  ? `${summary.cancelledCount} dibatalkan (tidak dihitung)`
+                  : "belum ada data periode sebelumnya"
+            }
           />
           <StatCard
             label="Nilai Pesanan"
             value={formatRupiah(summary.orderValue)}
             icon={Wallet}
             tone="success"
+            trend={changeVersus(summary.orderValue, previousSummary.orderValue)}
             description={`Selesai: ${formatRupiah(summary.completedRevenue)}`}
           />
           <StatCard label="Rata-rata per Pesanan" value={formatRupiah(summary.averageOrderValue)} icon={Wallet} tone="secondary" />
@@ -104,6 +119,7 @@ export default async function PemasaranPage({ searchParams }: PemasaranPageProps
             value={`${summary.uniqueCustomers} orang`}
             icon={summary.repeatCustomers > 0 ? Repeat : Users}
             tone="primary"
+            trend={changeVersus(summary.uniqueCustomers, previousSummary.uniqueCustomers)}
             description={`${summary.repeatCustomers} pesan lagi (${summary.repeatRate}%)`}
           />
         </div>
@@ -112,7 +128,7 @@ export default async function PemasaranPage({ searchParams }: PemasaranPageProps
           <div className="border-b border-neutral-100 px-5 py-4">
             <h2 className="text-sm font-semibold text-neutral-800">Rencana Produksi</h2>
             <p className="mt-0.5 text-xs text-neutral-500">
-              Penuhi pesanan yang menunggu/diproses, lalu siapkan cadangan ±2 minggu penjualan. Stok produk diperbarui di menu Produk.
+              Penuhi pesanan yang menunggu/diproses, lalu siapkan cadangan ±2 minggu penjualan. Stok produk dihitung otomatis dari produksi dan pesanan yang selesai.
             </p>
           </div>
           {planNeeded.length === 0 ? (
@@ -153,6 +169,24 @@ export default async function PemasaranPage({ searchParams }: PemasaranPageProps
             </div>
           )}
         </div>
+
+        <BarList
+          title="Tren Pesanan per Bulan"
+          description="Jumlah pesanan (tidak termasuk batal) 6 bulan terakhir — indikator peningkatan jumlah pesanan."
+          emptyMessage="Belum ada pesanan dalam 6 bulan terakhir."
+          limit={6}
+          items={
+            monthly.some((row) => row.orders > 0)
+              ? monthly.map((row) => ({
+                  key: row.month,
+                  label: row.label,
+                  value: row.orders,
+                  valueLabel: `${row.orders} pesanan`,
+                  detail: formatRupiah(row.value),
+                }))
+              : []
+          }
+        />
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <BarList

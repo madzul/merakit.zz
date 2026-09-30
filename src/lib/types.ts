@@ -92,6 +92,8 @@ export interface ProductionRecord {
   productId: string | null;
   productName: string;
   quantity: number;
+  /** Jumlah produk cacat/reject dari `quantity`. Produk layak (Grade A) = quantity − rejectQuantity. */
+  rejectQuantity: number;
   duration: number;
   status: ProductionStatus;
   notes: string;
@@ -265,6 +267,23 @@ export interface Material {
 }
 
 /** Riwayat pergerakan stok bahan (tabel `material_movements`). */
+export type LeftoverStatus = "disimpan" | "dimanfaatkan" | "dibuang";
+
+/** Catatan sisa bahan / limbah produksi (lihat migration-indikator-dampak.sql). */
+export interface MaterialLeftover {
+  id: string;
+  materialId: string | null;
+  /** Nama bahan, atau "Campuran" bila tidak terkait satu bahan. */
+  materialName: string;
+  quantity: number;
+  unit: string;
+  date: string;
+  status: LeftoverStatus;
+  notes: string;
+  createdBy: string | null;
+  createdByName: string;
+}
+
 export type ProductStockMovementType = "masuk" | "keluar" | "penyesuaian";
 
 /** Satu baris riwayat stok produk jadi (lihat migration-stok-produk.sql). */
