@@ -1,16 +1,6 @@
-import { ShoppingBag } from "lucide-react";
-import { PageHeader } from "@/components/page-header";
-import { ComingSoon } from "@/components/coming-soon";
+import { redirect } from "next/navigation";
 
-export default function ProdukPage() {
-  return (
-    <div>
-      <PageHeader title="Produk" description="Kelola katalog produk rajut yang dihasilkan komunitas." />
-      <ComingSoon
-        title="Katalog produk segera hadir"
-        description="Halaman untuk mengelola daftar produk, harga, dan stok sedang dalam pengembangan."
-        icon={ShoppingBag}
-      />
-    </div>
-  );
+/** Alamat lama — diarahkan ke halaman modul yang sebenarnya. */
+export default function LegacyProdukPage() {
+  redirect("/dashboard/produk");
 }

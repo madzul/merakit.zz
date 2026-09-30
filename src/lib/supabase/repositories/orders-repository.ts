@@ -2,9 +2,12 @@ import { createClient } from "@/lib/supabase/server";
 import type { Order, OrderStatus } from "@/lib/types";
 import type { Tables } from "@/lib/supabase/database.types";
 
-type OrderRow = Tables<"orders"> & { products: { name: string } | null };
+type OrderRow = Tables<"orders"> & {
+  products: { name: string } | null;
+  promotions: { code: string } | null;
+};
 
-const SELECT_WITH_PRODUCT = "*, products(name)";
+const SELECT_WITH_RELATIONS = "*, products(name), promotions(code)";
 
 function mapOrder(row: OrderRow): Order {
   return {
@@ -19,6 +22,10 @@ function mapOrder(row: OrderRow): Order {
     totalAmount: Number(row.total_amount),
     status: row.status,
     notes: row.notes ?? "",
+    source: row.source ?? "Langsung",
+    promotionId: row.promotion_id ?? null,
+    promotionCode: row.promotions?.code ?? "",
+    discountAmount: Number(row.discount_amount ?? 0),
   };
 }
 
@@ -31,9 +38,14 @@ export interface OrderInput {
   unitPrice: number;
   status: OrderStatus;
   notes: string;
+  source: string;
+  promotionId: string | null;
+  /** Sudah dihitung & divalidasi server action (lib/promo/logic.ts). */
+  discountAmount: number;
 }
 
 function toRow(input: OrderInput) {
+  const subtotal = input.unitPrice * input.quantity;
   return {
     order_date: input.orderDate,
     customer_name: input.customerName,
@@ -42,9 +54,12 @@ function toRow(input: OrderInput) {
     quantity: input.quantity,
     unit_price: input.unitPrice,
     // Total dihitung di server, bukan dipercaya dari input form.
-    total_amount: input.unitPrice * input.quantity,
+    total_amount: subtotal - input.discountAmount,
     status: input.status,
     notes: input.notes,
+    source: input.source,
+    promotion_id: input.promotionId,
+    discount_amount: input.discountAmount,
   };
 }
 
@@ -53,19 +68,19 @@ export async function getOrders(): Promise<Order[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("orders")
-    .select(SELECT_WITH_PRODUCT)
+    .select(SELECT_WITH_RELATIONS)
     .order("order_date", { ascending: false })
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map((row) => mapOrder(row as OrderRow));
 }
 
-/** Pesanan dalam rentang tanggal (inklusif) — dipakai dashboard. */
+/** Pesanan dalam rentang tanggal (inklusif) — dipakai dashboard, keuangan, pemasaran. */
 export async function getOrdersBetween(from: string, to: string): Promise<Order[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("orders")
-    .select(SELECT_WITH_PRODUCT)
+    .select(SELECT_WITH_RELATIONS)
     .gte("order_date", from)
     .lte("order_date", to)
     .order("order_date", { ascending: false });
@@ -75,7 +90,7 @@ export async function getOrdersBetween(from: string, to: string): Promise<Order[
 
 export async function getOrderById(id: string): Promise<Order | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("orders").select(SELECT_WITH_PRODUCT).eq("id", id).maybeSingle();
+  const { data, error } = await supabase.from("orders").select(SELECT_WITH_RELATIONS).eq("id", id).maybeSingle();
   if (error) throw error;
   return data ? mapOrder(data as OrderRow) : null;
 }

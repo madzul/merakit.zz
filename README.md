@@ -54,6 +54,7 @@ Lihat [`.env.example`](./.env.example) untuk daftar lengkap dan penjelasan tiap 
    - `migration-members-update-own.sql` — anggota boleh mengedit profilnya sendiri (hanya untuk database lama; `database-schema.sql` baru sudah memuatnya).
    - `migration-bahan-baku.sql` — tabel bahan baku, riwayat stok, resep produk, dan trigger pemakaian bahan otomatis dari produksi.
    - `migration-foto-produk.sql` — bucket Storage publik `product-images` untuk foto produk (unggah/hapus khusus admin).
+   - `migration-promo-pemasaran.sql` — kolom `source`, `promotion_id`, `discount_amount` pada `orders` (sumber pesanan & diskon promo).
 3. (Opsional, untuk data contoh) jalankan `seed.sql` — perhatikan seed ini membuat baris berdasarkan email (`admin@merakit.id`, `lina@merakit.id`); buat dulu user tersebut lewat Supabase Auth sebelum menjalankan seed.
 4. Ambil **Project URL** dan **anon/publishable key**: buka project di Supabase Dashboard, klik tombol **Connect** di bagian atas halaman → tab **App Frameworks** (pilih **Next.js**) — kedua nilai sudah siap salin dalam format `.env`. Alternatif lewat menu: sidebar **Project Settings → API Keys** (Project URL ada di sana juga, kadang di sub-tab **Data API**); untuk key, tab **API Keys** menampilkan *publishable key* (format baru `sb_publishable_...`) dan tab **Legacy API Keys** menampilkan *anon key* lama (format JWT `eyJ...`) — keduanya sama-sama valid untuk diisi ke `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Tempel ke `.env.local` untuk lokal, dan ke Environment Variables Vercel untuk deployment.
 
@@ -85,6 +86,8 @@ Seluruh modul data di bawah ini **sudah membaca & menulis ke Supabase** (tidak a
 | Pesanan (`/dashboard/pesanan`) | `orders` | Semua login bisa lihat; tambah/edit/ubah status/hapus khusus admin |
 | Keuangan (`/keuangan`) | `expenses` + pesanan `Selesai` dari `orders` | Khusus admin (middleware, cek server, RLS) |
 | Katalog publik (`/katalog`) | `products` aktif (tanpa login) | Siapa pun; produk nonaktif tidak tampil. `/` mengarahkan pengunjung ke sini |
+| Promo (`/promo`) | `promotions` + pemakaian di `orders` | Semua login bisa lihat; kelola khusus admin. Promo lewat tanggal berlaku otomatis dianggap kedaluwarsa |
+| Pemasaran (`/pemasaran`) | Analisis `orders` & `products` | Semua login: produk terlaris, sumber pesanan, rencana produksi. Daftar pelanggan (nama & HP) khusus admin |
 | Bahan Baku (`/bahan-baku`) | `materials`, `material_movements`, `product_materials` | Semua login bisa lihat stok; kelola bahan, catat stok & resep khusus admin |
 | Dashboard | Agregasi dari tabel di atas | Angka produksi anggota biasa hanya mencakup produksinya sendiri (RLS) |
 
@@ -92,13 +95,11 @@ Seluruh modul data di bawah ini **sudah membaca & menulis ke Supabase** (tidak a
 
 **Catatan modul Bahan Baku:** stok bahan **tidak pernah diubah langsung** — selalu dihitung ulang oleh trigger dari riwayat `material_movements` (masuk, keluar, penyesuaian). Setiap catatan produksi yang tidak dibatalkan otomatis mencatat pemakaian bahan sesuai resep produknya (`product_materials`); mengubah jumlah/status/produk atau menghapus catatan produksi ikut menyesuaikan pemakaiannya. HPP di detail produk = Σ kebutuhan bahan × harga beli terakhir (belum termasuk upah & overhead). Pembelian bahan bisa sekaligus dicatat sebagai pengeluaran "Bahan Baku" di Keuangan.
 
-**Belum diimplementasikan** (halaman masih "Segera Hadir" atau belum ada tabelnya):
+**Catatan Promo & Pemasaran:** kode promo diketik admin saat mencatat pesanan; potongan **dihitung ulang di server** (persen atau nominal, tidak pernah melebihi subtotal) dan disimpan di `orders.discount_amount`, sehingga `total_amount` = jumlah × harga − diskon — angka ini yang dipakai Dashboard, Keuangan, dan Pemasaran. Rencana produksi di halaman Pemasaran = pesanan terbuka (Menunggu/Diproses) − stok produk, ditambah cadangan ±2 minggu rata-rata penjualan.
 
-- **Pemasaran** & **Promo** — tabel `promotions` & repository sudah ada, UI belum.
+Modul Bahan Baku membutuhkan `migration-bahan-baku.sql`, foto produk membutuhkan `migration-foto-produk.sql`, dan Promo/Pemasaran membutuhkan `migration-promo-pemasaran.sql` (lihat [Database Supabase](#database-supabase)). Setelah deploy, data yang tampil adalah data sungguhan di Supabase; jalankan `seed.sql` bila perlu data contoh.
 
-Modul Bahan Baku membutuhkan `migration-bahan-baku.sql` dan foto produk membutuhkan `migration-foto-produk.sql` (lihat [Database Supabase](#database-supabase)). Setelah deploy, data yang tampil adalah data sungguhan di Supabase; jalankan `seed.sql` bila perlu data contoh.
-
-Halaman `/anggota`, `/pesanan`, `/produk` (tanpa prefiks `/dashboard`) juga masih ada sebagai halaman "Coming Soon" — sudah tidak ditautkan dari sidebar (menu mengarah ke `/dashboard/anggota`, dll.) tapi tetap bisa diakses langsung lewat URL. Aman untuk di-deploy (tidak error), namun disarankan dirapikan/dihapus di iterasi berikutnya agar tidak membingungkan pengguna.
+Alamat lama `/anggota`, `/pesanan`, `/produk` (tanpa prefiks `/dashboard`) kini otomatis diarahkan ke `/dashboard/anggota`, `/dashboard/pesanan`, dan `/dashboard/produk`.
 
 ## Checklist deployment ke Vercel
 
@@ -126,6 +127,8 @@ Jalankan manual terhadap URL production (dan idealnya juga preview) setelah depl
 - [ ] **Logout** — sesi benar-benar berakhir; mencoba mengakses `/dashboard` setelah logout mengarahkan ke `/login`.
 - [ ] **Refresh session** — buka tab baru / reload halaman dashboard setelah beberapa saat, pastikan sesi tetap tervalidasi (tidak ter-*log out* mendadak) berkat `middleware.ts`.
 - [ ] **Role admin** — akun `admin` bisa mengakses `/dashboard/anggota` dan `/keuangan`.
+- [ ] **Promo** — buat kode promo persen & nominal; terapkan di form pesanan (diskon tampil, total berkurang); promo lewat tanggal ditolak di pesanan baru.
+- [ ] **Pemasaran** — ganti periode; produk terlaris & sumber pesanan sesuai data; rencana produksi menampilkan kekurangan untuk pesanan terbuka; akun anggota tidak melihat daftar pelanggan.
 - [ ] **Katalog publik** — buka `/katalog` di jendela penyamaran: produk aktif tampil lengkap dengan foto, produk nonaktif tidak; filter kategori & pencarian; tombol WhatsApp membuka chat dengan pesan terisi (bila `MERAKIT_WHATSAPP_NUMBER` diisi).
 - [ ] **Foto produk** — unggah foto dari HP di form produk, simpan, cek tampil di dashboard & katalog; ganti foto → foto lama terhapus dari Storage.
 - [ ] **Bahan Baku** — tambah bahan dengan stok awal; catat masuk (centang "catat ke Keuangan" → muncul di Keuangan); atur resep di detail produk dan lihat HPP/margin; catat produksi produk itu → stok bahan berkurang otomatis; batalkan produksi → stok kembali.
