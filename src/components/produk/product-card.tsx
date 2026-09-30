@@ -5,6 +5,7 @@ import { AlertTriangle, Pencil, Trash2 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import {
   PRODUCT_ACTIVE_BADGE_STYLES,
+  PRODUCT_PLACEHOLDER_IMAGE,
   PRODUCT_ACTIVE_LABELS,
   activeKey,
   isLowStock,
@@ -16,10 +17,12 @@ interface ProductCardProps {
   product: Product;
   onEdit: (product: Product) => void;
   onDelete: (product: Product) => void;
+  /** False untuk anggota biasa: tombol Edit/Hapus disembunyikan (RLS: hanya admin yang boleh). */
+  canManage?: boolean;
 }
 
 /** Kartu produk untuk tampilan katalog (grid), dipakai di halaman daftar produk. */
-export function ProductCard({ product, onEdit, onDelete }: ProductCardProps) {
+export function ProductCard({ product, onEdit, onDelete, canManage = true }: ProductCardProps) {
   const lowStock = isLowStock(product.stock);
   const outOfStock = isOutOfStock(product.stock);
 
@@ -29,7 +32,7 @@ export function ProductCard({ product, onEdit, onDelete }: ProductCardProps) {
         <div className="relative aspect-square w-full bg-neutral-50">
           {/* eslint-disable-next-line @next/next/no-img-element -- gambar placeholder lokal (SVG statis), tidak memerlukan optimisasi next/image */}
           <img
-            src={product.imageUrl}
+            src={product.imageUrl || PRODUCT_PLACEHOLDER_IMAGE}
             alt={`Gambar placeholder produk ${product.name}`}
             className="absolute inset-0 h-full w-full object-contain p-6"
           />
@@ -73,6 +76,7 @@ export function ProductCard({ product, onEdit, onDelete }: ProductCardProps) {
           ) : null}
         </div>
 
+        {canManage && (
         <div className="mt-auto flex items-center justify-end gap-2 pt-2">
           <button
             type="button"
@@ -93,6 +97,7 @@ export function ProductCard({ product, onEdit, onDelete }: ProductCardProps) {
             Hapus
           </button>
         </div>
+        )}
       </div>
     </div>
   );

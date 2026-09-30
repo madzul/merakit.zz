@@ -16,7 +16,8 @@ interface ProductGridProps {
   totalPages: number;
   totalProducts: number;
   onPageChange: (page: number) => void;
-  onDelete: (product: Product) => void;
+  onDelete: (product: Product) => void | Promise<void>;
+  canManage?: boolean;
 }
 
 /** Grid katalog produk (kartu), dengan skeleton loading, empty state, dan paginasi. */
@@ -28,6 +29,7 @@ export function ProductGrid({
   totalProducts,
   onPageChange,
   onDelete,
+  canManage = true,
 }: ProductGridProps) {
   const router = useRouter();
   const [pendingDelete, setPendingDelete] = useState<Product | null>(null);
@@ -37,15 +39,12 @@ export function ProductGrid({
     router.push(`/dashboard/produk/tambah?id=${product.id}`);
   }
 
-  function handleConfirmDelete() {
+  async function handleConfirmDelete() {
     if (!pendingDelete) return;
     setDeleting(true);
-    // Simulasi proses penghapusan (data dummy, belum terhubung backend/database).
-    window.setTimeout(() => {
-      onDelete(pendingDelete);
-      setDeleting(false);
-      setPendingDelete(null);
-    }, 500);
+    await onDelete(pendingDelete);
+    setDeleting(false);
+    setPendingDelete(null);
   }
 
   if (loading) {
@@ -75,6 +74,7 @@ export function ProductGrid({
             product={product}
             onEdit={handleEdit}
             onDelete={(p) => setPendingDelete(p)}
+            canManage={canManage}
           />
         ))}
       </div>

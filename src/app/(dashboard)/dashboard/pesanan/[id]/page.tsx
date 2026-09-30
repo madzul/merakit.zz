@@ -1,16 +1,19 @@
-"use client";
-
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
 import { OrderDetail } from "@/components/pesanan/order-detail";
-import { getOrderById } from "@/lib/order-store";
+import { getCurrentProfile } from "@/lib/supabase/repositories/profiles-repository";
+import { getOrderById } from "@/lib/supabase/repositories/orders-repository";
 
-export default function PesananDetailPage() {
-  const params = useParams<{ id: string }>();
-  const order = getOrderById(params.id);
+interface PesananDetailPageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function PesananDetailPage({ params }: PesananDetailPageProps) {
+  const { id } = await params;
+  const [order, profile] = await Promise.all([getOrderById(id).catch(() => null), getCurrentProfile()]);
+  const isAdmin = profile?.role === "admin";
 
   return (
     <div>
@@ -29,7 +32,7 @@ export default function PesananDetailPage() {
       />
 
       {order ? (
-        <OrderDetail order={order} />
+        <OrderDetail order={order} canManage={isAdmin} />
       ) : (
         <EmptyState message="Data pesanan tidak ditemukan. Mungkin sudah dihapus atau tautan tidak valid." />
       )}

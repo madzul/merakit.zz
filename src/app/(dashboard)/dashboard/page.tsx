@@ -18,16 +18,22 @@ const STAT_ICONS: Record<DashboardStatIcon, typeof Boxes> = {
   ShoppingBag,
 };
 
-// Server component (async): mengambil data dummy lewat getDashboardData().
+// Server component (async): data dihitung dari Supabase lewat getDashboardData().
 // "use client" hanya dipakai pada komponen grafik (ProductionSalesChart) karena
 // Recharts membutuhkan lingkungan browser; seksi lain tetap server component.
 export default async function DashboardPage() {
-  const { stats, productionSalesTrend, materialStock, topMembers, activities, quickActions } =
+  const { stats, productionSalesTrend, materialStock, topMembers, activities, quickActions, partialError } =
     await getDashboardData();
 
   return (
     <div>
       <PageHeader title="Dashboard" description="Ringkasan aktivitas komunitas rajut MERAKIT hari ini." />
+
+      {partialError && (
+        <p role="alert" className="mb-4 rounded-lg bg-warning-50 px-3 py-2 text-sm text-warning-600">
+          Sebagian data gagal dimuat, sehingga angka di bawah mungkin belum lengkap. Muat ulang halaman untuk mencoba lagi.
+        </p>
+      )}
 
       {stats.length === 0 ? (
         <EmptyState message="Belum ada data ringkasan untuk ditampilkan." />
@@ -61,7 +67,10 @@ export default async function DashboardPage() {
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <MaterialStockCard items={materialStock} />
+        <MaterialStockCard
+          items={materialStock}
+          emptyMessage="Pencatatan stok bahan baku belum tersedia di sistem (modul bahan baku masih dikembangkan)."
+        />
         <RecentActivityCard activities={activities} />
         <QuickActions actions={quickActions} />
       </div>

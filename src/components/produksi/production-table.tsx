@@ -16,7 +16,7 @@ interface ProductionTableProps {
   totalPages: number;
   totalRecords: number;
   onPageChange: (page: number) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => void | Promise<void>;
 }
 
 const COLUMN_COUNT = 8;
@@ -38,15 +38,12 @@ export function ProductionTable({
     router.push(`/produksi/tambah?id=${record.id}`);
   }
 
-  function handleConfirmDelete() {
+  async function handleConfirmDelete() {
     if (!pendingDelete) return;
     setDeleting(true);
-    // Simulasi proses penghapusan (data dummy, belum terhubung backend/Supabase).
-    window.setTimeout(() => {
-      onDelete(pendingDelete.id);
-      setDeleting(false);
-      setPendingDelete(null);
-    }, 500);
+    await onDelete(pendingDelete.id);
+    setDeleting(false);
+    setPendingDelete(null);
   }
 
   return (
