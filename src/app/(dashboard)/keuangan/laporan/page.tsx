@@ -52,7 +52,7 @@ export default async function LaporanKeuanganPage({ searchParams }: LaporanPageP
   const isSurplus = report.net >= 0;
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="relative mx-auto max-w-4xl print:min-h-[260mm] print:max-w-none">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between print:hidden">
         <Link
           href={`/keuangan?bulan=${month}`}

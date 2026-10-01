@@ -59,7 +59,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="contents print:hidden">
           <DashboardHeader onMenuClick={() => setMobileNavOpen(true)} profile={profile} />
         </div>
-        <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8 print:overflow-visible print:p-0">{children}</main>
       </div>
     </div>
   );

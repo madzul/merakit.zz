@@ -77,3 +77,31 @@
   /* Font utama: Inter (self-hosted, lihat src/app/layout.tsx + src/app/fonts) */
   --font-sans: var(--font-inter), system-ui, sans-serif;
 }
+
+/* ---------- Cetak / PDF ----------
+ * Ukuran & margin halaman dikunci (A4, 15 mm) supaya tinggi area cetak tiap
+ * halaman pasti 267 mm — dipakai watermark per-halaman untuk Safari
+ * (lihat src/components/print-watermark.tsx).
+ */
+@media print {
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+}
+
+/* Chrome, Edge, Firefox mengulang elemen position:fixed di setiap halaman cetak.
+ * Safari (WebKit) tidak — ia mencetaknya sekali di tengah seluruh dokumen —
+ * jadi di Safari dipakai deretan watermark setinggi satu halaman (267 mm).
+ * hanging-punctuation hanya didukung Safari, dipakai sebagai penanda WebKit. */
+.print-watermark-pages {
+  display: none;
+}
+@supports (hanging-punctuation: first) {
+  .print-watermark-fixed {
+    display: none !important;
+  }
+  .print-watermark-pages {
+    display: block;
+  }
+}
