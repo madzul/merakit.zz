@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { MonthNavigator } from "@/components/keuangan/month-navigator";
 import { ReportActions, type ReportCsvRow } from "@/components/keuangan/report-actions";
+import { PrintWatermark } from "@/components/print-watermark";
 import { ORDER_SALES_LABEL, TRANSACTION_TYPE_LABELS, formatMonthLabel, parseMonthParam } from "@/lib/keuangan/constants";
 import { loadMonthlyFinance } from "@/lib/keuangan/load";
 import type { CategoryTotal } from "@/lib/keuangan/report";
@@ -154,6 +155,8 @@ export default async function LaporanKeuanganPage({ searchParams }: LaporanPageP
           &quot;Selesai&quot; berdasarkan tanggal pesanan.
         </p>
       </article>
+
+      <PrintWatermark />
     </div>
   );
 }
