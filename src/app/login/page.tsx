@@ -64,7 +64,7 @@ export default async function LoginPage({
         </div>
 
         <footer className="mt-6 text-center text-xs text-neutral-400">
-          Sistem Informasi MERAKIT © 2024
+          Sistem Informasi MERAKIT © 2026
         </footer>
       </div>
     </div>
