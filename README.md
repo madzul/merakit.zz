@@ -185,3 +185,4 @@ Jika mengalami kegagalan build lain di masa depan:
 1. Baca pesan error lengkap dan **Import trace**-nya untuk menemukan berkas sumber masalah.
 2. Jalankan `npx tsc --noEmit` untuk memisahkan error TypeScript dari error build/bundling.
 3. Jangan menghapus fitur/halaman untuk "melewati" error — perbaiki akar masalah (tipe data, import path, env var yang hilang, dll.) atau, bila terkait ketersediaan jaringan/layanan eksternal saat build, cari alternatif yang tidak bergantung jaringan (seperti solusi font di atas).
+
