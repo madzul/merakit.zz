@@ -1,4 +1,4 @@
-# MERAKIT — Sistem Informasi Komunitas Rajut Inklusif
+# SI-MERAKIT — Sistem Informasi Komunitas Rajut Inklusif
 
 MERAKIT ("Merajut Asa Kita") adalah sistem informasi untuk mengelola produksi, keanggotaan, produk, dan pesanan komunitas rajut inklusif.
 
