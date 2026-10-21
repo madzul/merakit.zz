@@ -152,6 +152,16 @@ Deployment dilakukan **manual** — tidak ada langkah di bawah ini yang dijalank
 7. **Uji preview** — jalankan checklist di bawah ([Checklist pengujian production](#checklist-pengujian-production)) terhadap URL preview sebelum promote ke production.
 8. **Deploy production** — merge PR ke branch default (atau klik "Promote to Production" di Vercel) setelah preview lolos uji.
 
+### Keep-alive Supabase (cegah pause karena idle)
+
+Project Supabase paket gratis otomatis di-*pause* setelah sekitar 7 hari tanpa aktivitas database. Repositori ini menyertakan **Vercel Cron Job** (`vercel.json`) yang memanggil `/api/cron/keep-alive` setiap hari pukul **08.00 WIB** (`0 1 * * *` UTC). Route itu menjalankan satu query baca ringan (`select id from products limit 1`) — tidak ada data yang diubah.
+
+1. Di Vercel → Project Settings → Environment Variables, tambahkan `CRON_SECRET` (string acak panjang, mis. hasil `openssl rand -hex 32`) untuk **Production**. Vercel otomatis mengirim `Authorization: Bearer <CRON_SECRET>`; permintaan lain ditolak 401.
+2. Deploy ke production — cron hanya berjalan di deployment production, bukan preview.
+3. Cek di Vercel → Project → **Settings → Cron Jobs**: job `/api/cron/keep-alive` muncul; tombol **Run** untuk uji manual, hasilnya terlihat di **Logs** (respons `{"ok":true,...}`).
+
+Paket Hobby Vercel membatasi cron maksimal sekali sehari (waktu eksekusi bisa meleset dalam rentang jam tersebut) — sudah lebih dari cukup untuk batas 7 hari Supabase. Bila project terlanjur di-pause, aktifkan kembali sekali lewat Supabase Dashboard → **Restore project**; setelah itu cron menjaganya tetap aktif.
+
 ## Checklist pengujian production
 
 Jalankan manual terhadap URL production (dan idealnya juga preview) setelah deploy:
