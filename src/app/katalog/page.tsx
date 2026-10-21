@@ -10,7 +10,7 @@ import type { Product } from "@/lib/types";
 export const metadata: Metadata = {
   title: "Katalog Produk Rajut — MERAKIT",
   description:
-    "Katalog produk rajut buatan Komunitas Rajut Inklusif MERAKIT, Kampung Wisata Rajut Binong, Bandung. Pesan langsung via WhatsApp.",
+    "Katalog produk rajut buatan Komunitas Rajut Inklusif MERAKIT, Kampung Wisata Rajut Binong, Bandung. Pesan online lewat keranjang atau via WhatsApp.",
 };
 
 interface KatalogPageProps {

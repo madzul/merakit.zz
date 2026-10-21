@@ -93,6 +93,15 @@ async function requireAdmin(): Promise<string | null> {
   return null;
 }
 
+const ONLINE_SALE_MESSAGE =
+  "Pesanan ini berasal dari Penjualan Online — ubah status atau hapus lewat menu Penjualan Online agar data pembeli, pembayaran, dan pengiriman tetap sinkron.";
+
+/** Pesanan hasil checkout katalog dikelola dari menu Penjualan Online. */
+async function rejectIfOnlineSale(id: string): Promise<string | null> {
+  const existing = await getOrderById(id).catch(() => null);
+  return existing?.saleId ? ONLINE_SALE_MESSAGE : null;
+}
+
 function validate(input: OrderFormInput): string | null {
   if (!isIsoDate(input.orderDate)) return "Tanggal pesanan tidak valid.";
   if (!isNonEmptyString(input.customerName)) return "Nama pemesan wajib diisi.";
@@ -159,6 +168,7 @@ export async function updateOrderAction(id: string, input: OrderFormInput): Prom
 
   const existing = await getOrderById(id).catch(() => null);
   if (!existing) return { error: "Pesanan tidak ditemukan. Mungkin sudah dihapus." };
+  if (existing.saleId) return { error: ONLINE_SALE_MESSAGE };
   const promotion = await resolvePromotion(input, existing.promotionId);
   if (promotion.error) return { error: promotion.error };
 
@@ -176,6 +186,8 @@ export async function updateOrderStatusAction(id: string, status: OrderStatus): 
   const authError = await requireAdmin();
   if (authError) return { error: authError };
   if (!VALID_STATUSES.has(status)) return { error: "Status pesanan tidak valid." };
+  const onlineSaleError = await rejectIfOnlineSale(id);
+  if (onlineSaleError) return { error: onlineSaleError };
 
   try {
     await updateOrderStatus(id, status);
@@ -190,6 +202,8 @@ export async function updateOrderStatusAction(id: string, status: OrderStatus): 
 export async function deleteOrderAction(id: string): Promise<ActionResult> {
   const authError = await requireAdmin();
   if (authError) return { error: authError };
+  const onlineSaleError = await rejectIfOnlineSale(id);
+  if (onlineSaleError) return { error: onlineSaleError };
 
   try {
     await deleteOrder(id);

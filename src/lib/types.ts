@@ -230,6 +230,8 @@ export interface Order {
   /** Kode promo yang dipakai (hasil join), kosong bila tanpa promo. */
   promotionCode: string;
   discountAmount: number;
+  /** Terisi bila pesanan berasal dari checkout katalog online (Penjualan Online). */
+  saleId: string | null;
 }
 
 export type TransactionType = "pemasukan" | "pengeluaran";
@@ -339,4 +341,78 @@ export interface ProductMaterial {
   unit: string;
   quantityPerUnit: number;
   unitCost: number;
+}
+
+// ---------- Penjualan Online (migration-penjualan-online.sql) ----------
+
+export type OnlineSaleStatus = "Baru" | "Diproses" | "Dikirim" | "Selesai" | "Dibatalkan";
+export type OnlinePaymentStatus = "belum_bayar" | "menunggu_verifikasi" | "lunas" | "ditolak";
+export type DeliveryMethod = "kirim" | "ambil";
+
+export interface OnlineSaleItem {
+  orderId: string;
+  productId: string | null;
+  productName: string;
+  imageUrl: string | null;
+  quantity: number;
+  unitPrice: number;
+  totalAmount: number;
+}
+
+export interface OnlineSale {
+  id: string;
+  code: string;
+  createdAt: string;
+  customerName: string;
+  /** Format internasional tanpa "+", mis. "6281234567890". */
+  customerPhone: string;
+  customerEmail: string | null;
+  deliveryMethod: DeliveryMethod;
+  address: string | null;
+  shippingZoneLabel: string | null;
+  shippingCost: number;
+  subtotal: number;
+  totalAmount: number;
+  notes: string | null;
+  paymentStatus: OnlinePaymentStatus;
+  paymentProofPath: string | null;
+  paymentProofUploadedAt: string | null;
+  paymentNote: string | null;
+  paidAt: string | null;
+  status: OnlineSaleStatus;
+  courier: string | null;
+  trackingNumber: string | null;
+  publicToken: string;
+  items: OnlineSaleItem[];
+}
+
+/** Tampilan publik halaman lacak pesanan (tanpa data internal). */
+export interface PublicOnlineSale {
+  code: string;
+  createdAt: string;
+  customerName: string;
+  customerPhoneMasked: string;
+  deliveryMethod: DeliveryMethod;
+  address: string | null;
+  shippingZoneLabel: string | null;
+  shippingCost: number;
+  subtotal: number;
+  totalAmount: number;
+  notes: string | null;
+  paymentStatus: OnlinePaymentStatus;
+  paymentNote: string | null;
+  hasPaymentProof: boolean;
+  paidAt: string | null;
+  status: OnlineSaleStatus;
+  courier: string | null;
+  trackingNumber: string | null;
+  items: { productId: string | null; productName: string; imageUrl: string | null; quantity: number; unitPrice: number; totalAmount: number }[];
+}
+
+export interface ShippingZone {
+  id: string;
+  label: string;
+  cost: number;
+  isActive: boolean;
+  sortOrder: number;
 }

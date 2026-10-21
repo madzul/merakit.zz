@@ -14,6 +14,9 @@ export type PromoStatusEnum = "aktif" | "nonaktif" | "kedaluwarsa";
 export type MaterialMovementTypeEnum = "masuk" | "keluar" | "penyesuaian";
 export type ProductStockMovementTypeEnum = "masuk" | "keluar" | "penyesuaian";
 export type LeftoverStatusEnum = "disimpan" | "dimanfaatkan" | "dibuang";
+export type OnlinePaymentStatusEnum = "belum_bayar" | "menunggu_verifikasi" | "lunas" | "ditolak";
+export type OnlineSaleStatusEnum = "Baru" | "Diproses" | "Dikirim" | "Selesai" | "Dibatalkan";
+export type DeliveryMethodEnum = "kirim" | "ambil";
 
 export interface Database {
   public: {
@@ -160,6 +163,8 @@ export interface Database {
           source: string;
           promotion_id: string | null;
           discount_amount: number;
+          // migration-penjualan-online.sql
+          sale_id: string | null;
         };
         Insert: {
           id?: string;
@@ -175,6 +180,7 @@ export interface Database {
           source?: string;
           promotion_id?: string | null;
           discount_amount?: number;
+          sale_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["orders"]["Insert"]>;
         Relationships: [
@@ -191,7 +197,70 @@ export interface Database {
             referencedRelation: "promotions";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "orders_sale_id_fkey";
+            columns: ["sale_id"];
+            isOneToOne: false;
+            referencedRelation: "online_sales";
+            referencedColumns: ["id"];
+          },
         ];
+      };
+      // migration-penjualan-online.sql
+      online_sales: {
+        Row: {
+          id: string;
+          code: string;
+          public_token: string;
+          customer_name: string;
+          customer_phone: string;
+          customer_email: string | null;
+          delivery_method: DeliveryMethodEnum;
+          address: string | null;
+          shipping_zone: string | null;
+          shipping_zone_label: string | null;
+          shipping_cost: number;
+          subtotal: number;
+          total_amount: number;
+          notes: string | null;
+          payment_status: OnlinePaymentStatusEnum;
+          payment_proof_path: string | null;
+          payment_proof_uploaded_at: string | null;
+          payment_note: string | null;
+          paid_at: string | null;
+          status: OnlineSaleStatusEnum;
+          courier: string | null;
+          tracking_number: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        // Baris baru hanya lewat fungsi create_online_sale().
+        Insert: never;
+        Update: {
+          payment_status?: OnlinePaymentStatusEnum;
+          payment_note?: string | null;
+          paid_at?: string | null;
+          status?: OnlineSaleStatusEnum;
+          courier?: string | null;
+          tracking_number?: string | null;
+          notes?: string | null;
+        };
+        Relationships: [];
+      };
+      shipping_zones: {
+        Row: {
+          id: string;
+          label: string;
+          cost: number;
+          is_active: boolean;
+          sort_order: number;
+        };
+        Insert: never;
+        Update: {
+          cost?: number;
+          is_active?: boolean;
+        };
+        Relationships: [];
       };
       expenses: {
         Row: {
@@ -433,6 +502,23 @@ export interface Database {
         Returns: number;
       };
       current_member_id: { Args: Record<string, never>; Returns: string | null };
+      // migration-penjualan-online.sql
+      create_online_sale: {
+        Args: {
+          p_customer_name: string;
+          p_customer_phone: string;
+          p_customer_email: string | null;
+          p_delivery_method: DeliveryMethodEnum;
+          p_address: string | null;
+          p_shipping_zone: string | null;
+          p_notes: string | null;
+          p_items: Json;
+        };
+        Returns: { code: string; public_token: string }[];
+      };
+      get_online_sale: { Args: { p_token: string }; Returns: Json | null };
+      find_online_sale_token: { Args: { p_code: string; p_phone: string }; Returns: string | null };
+      attach_payment_proof: { Args: { p_token: string; p_path: string }; Returns: undefined };
     };
     Enums: {
       user_role: UserRoleEnum;
@@ -443,6 +529,9 @@ export interface Database {
       discount_type: DiscountTypeEnum;
       promo_status: PromoStatusEnum;
       material_movement_type: MaterialMovementTypeEnum;
+      online_payment_status: OnlinePaymentStatusEnum;
+      online_sale_status: OnlineSaleStatusEnum;
+      delivery_method: DeliveryMethodEnum;
     };
     CompositeTypes: Record<string, never>;
   };

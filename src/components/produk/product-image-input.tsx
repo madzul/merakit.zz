@@ -6,34 +6,12 @@ import { createClient } from "@/lib/supabase/client";
 import { PRODUCT_IMAGE_BUCKET, isUploadedProductImage } from "@/lib/produk/images";
 import { PRODUCT_IMAGE_OPTIONS, PRODUCT_PLACEHOLDER_IMAGE } from "@/lib/product-status";
 import { cn } from "@/lib/utils";
+import { compressImage } from "@/lib/image-compress";
 
 interface ProductImageInputProps {
   value: string;
   onChange: (url: string) => void;
   onUploadingChange?: (uploading: boolean) => void;
-}
-
-const MAX_DIMENSION = 1200;
-
-/** Perkecil & kompres foto di browser (maks. 1200 px, WebP/JPEG) sebelum diunggah. */
-async function compressImage(file: File): Promise<Blob> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("Canvas tidak tersedia");
-  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-
-  const toBlob = (type: string) =>
-    new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, 0.85));
-  const webp = await toBlob("image/webp");
-  if (webp && webp.type === "image/webp") return webp;
-  const jpeg = await toBlob("image/jpeg");
-  if (!jpeg) throw new Error("Gagal memproses gambar");
-  return jpeg;
 }
 
 /**

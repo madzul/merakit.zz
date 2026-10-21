@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, MessageCircle } from "lucide-react";
 import { ProductImage } from "@/components/produk/product-image";
+import { AddToCart } from "@/components/katalog/add-to-cart";
 import { getOrderWhatsAppNumber, orderWhatsAppLink, siteOrigin } from "@/lib/katalog";
 import { getProductById } from "@/lib/supabase/repositories/products-repository";
 import { formatRupiah } from "@/lib/utils";
@@ -64,19 +65,21 @@ export default async function KatalogDetailPage({ params }: KatalogDetailPagePro
 
           {product.description && <p className="whitespace-pre-line text-sm leading-relaxed text-neutral-700">{product.description}</p>}
 
+          <AddToCart product={{ id: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl }} />
+
           {whatsappNumber ? (
             <a
               href={orderWhatsAppLink(whatsappNumber, product, pageUrl)}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 rounded-xl bg-success-600 px-5 py-3.5 text-base font-semibold text-white hover:opacity-90"
+              className="flex items-center justify-center gap-2 rounded-xl border border-success-500/40 px-5 py-3 text-sm font-semibold text-success-600 hover:bg-success-50"
             >
-              <MessageCircle className="h-5 w-5" aria-hidden="true" />
-              Pesan via WhatsApp
+              <MessageCircle className="h-4 w-4" aria-hidden="true" />
+              Tanya dulu via WhatsApp
             </a>
           ) : (
             <p className="rounded-lg bg-neutral-100 px-4 py-3 text-sm text-neutral-600">
-              Untuk pemesanan, silakan kunjungi Kampung Wisata Rajut Binong, Jl. Binong Jati No. 124, Bandung.
+              Bisa juga datang langsung ke Kampung Wisata Rajut Binong, Jl. Binong Jati No. 124, Bandung.
             </p>
           )}
 

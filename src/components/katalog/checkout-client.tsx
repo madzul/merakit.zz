@@ -1,0 +1,347 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
+import { LoaderCircle, MapPin, Minus, Plus, Store, Trash2, Truck } from "lucide-react";
+import { ProductImage } from "@/components/produk/product-image";
+import { EmptyState } from "@/components/empty-state";
+import {
+  cartCount,
+  clearCart,
+  refreshCart,
+  removeFromCart,
+  setCartQuantity,
+  useCart,
+} from "@/lib/penjualan/cart-store";
+import { checkoutAction, getCartProductsAction } from "@/lib/penjualan/public-actions";
+import { detectShippingZone } from "@/lib/penjualan/shipping";
+import { MAX_LINE_QUANTITY } from "@/lib/penjualan/constants";
+import { cn, formatRupiah } from "@/lib/utils";
+import type { ShippingZone } from "@/lib/types";
+
+interface CheckoutClientProps {
+  zones: ShippingZone[];
+}
+
+const noopSubscribe = () => () => {};
+
+const inputClass =
+  "mt-1 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-800 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/40";
+
+/** Keranjang + form pembeli + ringkasan ongkir → buat penjualan online. */
+export function CheckoutClient({ zones }: CheckoutClientProps) {
+  const router = useRouter();
+  const items = useCart();
+  // false saat render server & hidrasi awal (keranjang di localStorage belum terbaca).
+  const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
+  const [refreshDone, setRefreshDone] = useState(false);
+  const [refreshNotice, setRefreshNotice] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    customerName: "",
+    customerPhone: "",
+    customerEmail: "",
+    deliveryMethod: "kirim" as "kirim" | "ambil",
+    address: "",
+    notes: "",
+  });
+  const refreshedOnce = useRef(false);
+
+  // Segarkan harga & ketersediaan produk sekali saat halaman dibuka.
+  useEffect(() => {
+    if (!hydrated || refreshedOnce.current) return;
+    refreshedOnce.current = true;
+    const snapshot = items;
+    if (snapshot.length === 0) return;
+    getCartProductsAction(snapshot.map((item) => item.productId))
+      .then((fresh) => {
+        if (!fresh) return;
+        const freshById = new Map(fresh.map((product) => [product.id, product]));
+        const removed = snapshot.filter((item) => !freshById.has(item.productId));
+        const repriced = snapshot.filter((item) => freshById.has(item.productId) && freshById.get(item.productId)!.price !== item.price);
+        refreshCart(fresh);
+        if (removed.length > 0) {
+          setRefreshNotice(`${removed.map((item) => item.name).join(", ")} sudah tidak tersedia dan dikeluarkan dari keranjang.`);
+        } else if (repriced.length > 0) {
+          setRefreshNotice("Harga beberapa produk telah diperbarui.");
+        }
+      })
+      .catch(() => null)
+      .finally(() => setRefreshDone(true));
+  }, [hydrated, items]);
+  const refreshing = items.length > 0 && !refreshDone;
+
+  const zoneById = useMemo(() => new Map(zones.map((zone) => [zone.id, zone])), [zones]);
+  const shippingMatch = form.deliveryMethod === "kirim" && form.address.trim().length >= 5 ? detectShippingZone(form.address) : null;
+  const shippingZone = shippingMatch ? (zoneById.get(shippingMatch.zone) ?? null) : null;
+  const shippingCost = form.deliveryMethod === "ambil" ? 0 : (shippingZone?.cost ?? null);
+  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    setError(null);
+    if (form.deliveryMethod === "kirim" && !shippingZone) {
+      setError("Lengkapi alamat sampai nama kota/kabupaten dan provinsi agar ongkir bisa dihitung.");
+      return;
+    }
+    setSubmitting(true);
+    const result = await checkoutAction({
+      ...form,
+      items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+    });
+    if (result.error || !result.token) {
+      setError(result.error ?? "Pesanan gagal dibuat.");
+      setSubmitting(false);
+      return;
+    }
+    clearCart();
+    router.push(`/katalog/pesanan/${result.token}?baru=1`);
+  }
+
+  if (!hydrated) {
+    return <div className="h-64 animate-pulse rounded-2xl bg-neutral-100" aria-label="Memuat keranjang" />;
+  }
+
+  if (items.length === 0 && !submitting) {
+    return (
+      <div className="space-y-4">
+        <EmptyState message="Keranjang masih kosong." />
+        <div className="text-center">
+          <Link href="/katalog" className="inline-block rounded-lg bg-primary-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-800">
+            Lihat katalog
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]">
+      <div className="space-y-6">
+        <section className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-base font-semibold text-neutral-800">Isi keranjang</h2>
+            <Link href="/katalog" className="text-sm font-medium text-primary-700 hover:underline">
+              + Tambah produk lain
+            </Link>
+          </div>
+          {refreshNotice && <p className="mb-3 rounded-lg bg-warning-50 px-3 py-2 text-sm text-warning-600">{refreshNotice}</p>}
+          <ul className="divide-y divide-neutral-100">
+            {items.map((item) => (
+              <li key={item.productId} className="flex gap-3 py-3">
+                <Link href={`/katalog/${item.productId}`} className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg border border-neutral-100 bg-neutral-50">
+                  <ProductImage src={item.imageUrl} name={item.name} placeholderPadding="p-2" />
+                </Link>
+                <div className="flex min-w-0 flex-1 flex-col gap-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <Link href={`/katalog/${item.productId}`} className="line-clamp-2 text-sm font-semibold text-neutral-800 hover:text-primary-700">
+                        {item.name}
+                      </Link>
+                      <p className="text-xs text-neutral-500">{formatRupiah(item.price)} / pcs</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeFromCart(item.productId)}
+                      aria-label={`Hapus ${item.name} dari keranjang`}
+                      className="rounded-md p-1.5 text-neutral-400 hover:bg-danger-50 hover:text-danger-600"
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="inline-flex items-center rounded-lg border border-neutral-200">
+                      <button
+                        type="button"
+                        onClick={() => setCartQuantity(item.productId, item.quantity - 1)}
+                        disabled={item.quantity <= 1}
+                        aria-label={`Kurangi ${item.name}`}
+                        className="px-2.5 py-1.5 text-neutral-600 disabled:opacity-40"
+                      >
+                        <Minus className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                      <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
+                      <button
+                        type="button"
+                        onClick={() => setCartQuantity(item.productId, item.quantity + 1)}
+                        disabled={item.quantity >= MAX_LINE_QUANTITY}
+                        aria-label={`Tambah ${item.name}`}
+                        className="px-2.5 py-1.5 text-neutral-600 disabled:opacity-40"
+                      >
+                        <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                    </div>
+                    <p className="text-sm font-semibold text-neutral-800">{formatRupiah(item.price * item.quantity)}</p>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-neutral-400">
+            Produk yang sedang kosong tetap bisa dipesan — perajin kami akan membuatkannya dulu. Admin akan mengabarkan perkiraan waktunya.
+          </p>
+        </section>
+
+        <section className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6">
+          <h2 className="text-base font-semibold text-neutral-800">Data pembeli</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label className="block text-sm font-medium text-neutral-700">
+              Nama lengkap <span className="text-danger-600">*</span>
+              <input required minLength={2} maxLength={100} autoComplete="name" value={form.customerName} onChange={(e) => update("customerName", e.target.value)} className={inputClass} />
+            </label>
+            <label className="block text-sm font-medium text-neutral-700">
+              Nomor WhatsApp <span className="text-danger-600">*</span>
+              <input
+                required
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="08xxxxxxxxxx"
+                maxLength={20}
+                value={form.customerPhone}
+                onChange={(e) => update("customerPhone", e.target.value.replace(/[^\d+\s-]/g, ""))}
+                className={inputClass}
+              />
+            </label>
+          </div>
+          <label className="block text-sm font-medium text-neutral-700">
+            Email <span className="font-normal text-neutral-400">(opsional)</span>
+            <input type="email" maxLength={120} autoComplete="email" value={form.customerEmail} onChange={(e) => update("customerEmail", e.target.value)} className={inputClass} />
+          </label>
+
+          <fieldset>
+            <legend className="text-sm font-medium text-neutral-700">Pengiriman</legend>
+            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {(
+                [
+                  { value: "kirim", label: "Kirim ke alamat", hint: "Ongkir flat per pesanan", Icon: Truck },
+                  { value: "ambil", label: "Ambil sendiri", hint: "Kampung Rajut Binong — gratis", Icon: Store },
+                ] as const
+              ).map(({ value, label, hint, Icon }) => (
+                <label
+                  key={value}
+                  className={cn(
+                    "flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-sm",
+                    form.deliveryMethod === value ? "border-primary-700 bg-primary-50" : "border-neutral-200 hover:bg-neutral-50"
+                  )}
+                >
+                  <input type="radio" name="delivery" value={value} checked={form.deliveryMethod === value} onChange={() => update("deliveryMethod", value)} className="sr-only" />
+                  <Icon className={cn("mt-0.5 h-5 w-5 flex-shrink-0", form.deliveryMethod === value ? "text-primary-700" : "text-neutral-400")} aria-hidden="true" />
+                  <span>
+                    <span className="block font-semibold text-neutral-800">{label}</span>
+                    <span className="block text-xs text-neutral-500">{hint}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          {form.deliveryMethod === "kirim" ? (
+            <div>
+              <label className="block text-sm font-medium text-neutral-700">
+                Alamat lengkap <span className="text-danger-600">*</span>
+                <textarea
+                  required
+                  rows={3}
+                  minLength={10}
+                  maxLength={500}
+                  autoComplete="street-address"
+                  placeholder="Jalan, nomor rumah, RT/RW, kelurahan, kecamatan, kota/kabupaten, provinsi, kode pos"
+                  value={form.address}
+                  onChange={(e) => update("address", e.target.value)}
+                  className={inputClass}
+                />
+              </label>
+              {form.address.trim().length >= 5 &&
+                (shippingMatch && shippingZone ? (
+                  <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-success-50 px-3 py-2 text-sm text-neutral-700">
+                    <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-success-600" aria-hidden="true" />
+                    <span>
+                      Ongkir ke <strong>{shippingMatch.matchedPlace}</strong>: <strong>{formatRupiah(shippingZone.cost)}</strong>{" "}
+                      <span className="text-neutral-500">
+                        (tarif {shippingZone.label}
+                        {shippingMatch.byNearest ? ", wilayah tarif terdekat" : ""})
+                      </span>
+                    </span>
+                  </p>
+                ) : (
+                  <p className="mt-2 rounded-lg bg-warning-50 px-3 py-2 text-sm text-warning-600">
+                    {shippingMatch
+                      ? "Pengiriman ke wilayah ini sedang tidak tersedia. Hubungi kami via WhatsApp atau pilih ambil sendiri."
+                      : "Kota/kabupaten belum dikenali. Lengkapi alamat sampai nama kota/kabupaten dan provinsi."}
+                  </p>
+                ))}
+              {zones.length > 0 && (
+                <details className="mt-2 text-sm text-neutral-600">
+                  <summary className="cursor-pointer select-none text-primary-700">Lihat tarif ongkir</summary>
+                  <ul className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
+                    {zones.map((zone) => (
+                      <li key={zone.id} className="flex justify-between gap-4">
+                        <span>{zone.label}</span>
+                        <span className="font-medium">{formatRupiah(zone.cost)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-1 text-xs text-neutral-400">Alamat di luar daftar memakai tarif wilayah terdekat.</p>
+                </details>
+              )}
+            </div>
+          ) : (
+            <p className="rounded-lg bg-neutral-100 px-3 py-2 text-sm text-neutral-600">
+              Ambil di Kampung Wisata Rajut Binong, Jl. Binong Jati No. 124, Bandung. Kami kabari via WhatsApp saat pesanan siap.
+            </p>
+          )}
+
+          <label className="block text-sm font-medium text-neutral-700">
+            Catatan <span className="font-normal text-neutral-400">(opsional)</span>
+            <textarea rows={2} maxLength={500} placeholder="Mis. warna pilihan, ukuran, untuk kado" value={form.notes} onChange={(e) => update("notes", e.target.value)} className={inputClass} />
+          </label>
+        </section>
+      </div>
+
+      <aside className="h-fit space-y-4 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6 lg:sticky lg:top-6">
+        <h2 className="text-base font-semibold text-neutral-800">Ringkasan</h2>
+        <dl className="space-y-2 text-sm">
+          <div className="flex justify-between gap-4">
+            <dt className="text-neutral-500">Subtotal ({cartCount(items)} pcs)</dt>
+            <dd className="font-medium text-neutral-800">{formatRupiah(subtotal)}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-neutral-500">Ongkir</dt>
+            <dd className="font-medium text-neutral-800">
+              {shippingCost === null ? <span className="text-neutral-400">lengkapi alamat</span> : shippingCost === 0 ? "Gratis" : formatRupiah(shippingCost)}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-4 border-t border-neutral-100 pt-2 text-base">
+            <dt className="font-semibold text-neutral-800">Total</dt>
+            <dd className="font-semibold text-primary-700">{formatRupiah(subtotal + (shippingCost ?? 0))}</dd>
+          </div>
+        </dl>
+
+        {error && (
+          <p role="alert" className="rounded-lg bg-danger-50 px-3 py-2 text-sm text-danger-600">
+            {error}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={submitting || refreshing || items.length === 0}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-700 px-5 py-3.5 text-base font-semibold text-white hover:bg-primary-800 disabled:opacity-60"
+        >
+          {(submitting || refreshing) && <LoaderCircle className="h-5 w-5 animate-spin" aria-hidden="true" />}
+          {submitting ? "Memproses…" : refreshing ? "Memperbarui harga…" : "Buat Pesanan"}
+        </button>
+        <p className="text-xs leading-relaxed text-neutral-500">
+          Setelah pesanan dibuat, Anda mendapat kode pesanan, instruksi pembayaran (transfer/QRIS), dan tautan untuk
+          mengunggah bukti bayar serta memantau status pesanan.
+        </p>
+      </aside>
+    </form>
+  );
+}
