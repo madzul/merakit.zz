@@ -6,7 +6,7 @@ import { createFetchWithTimeout } from "@/lib/supabase/fetch-with-timeout";
 const SUPABASE_TIMEOUT_MS = 5000;
 
 // Seluruh route di dalam grup (dashboard) — hanya boleh diakses setelah login.
-const PROTECTED_PATHS = ["/dashboard", "/produksi", "/bahan-baku", "/keuangan", "/pemasaran", "/promo"];
+const PROTECTED_PATHS = ["/dashboard", "/produksi", "/bahan-baku", "/keuangan", "/pemasaran", "/promo", "/penjualan"];
 
 // Route yang hanya boleh diakses oleh role "admin" (selaras dengan RLS di
 // database-schema.sql). "/dashboard/anggota" TIDAK lagi di sini — anggota
@@ -14,7 +14,8 @@ const PROTECTED_PATHS = ["/dashboard", "/produksi", "/bahan-baku", "/keuangan", 
 // (lihat pengecekan khusus rute "tambah" di bawah, dan RLS
 // members_select_admin_or_own / members_update_admin_or_own untuk
 // pembatasan datanya).
-const ADMIN_ONLY_PATHS = ["/keuangan"];
+// "/penjualan" memuat alamat & bukti bayar pembeli — khusus admin.
+const ADMIN_ONLY_PATHS = ["/keuangan", "/penjualan"];
 
 function matchesPath(paths: string[], pathname: string) {
   return paths.some((path) => pathname === path || pathname.startsWith(`${path}/`));

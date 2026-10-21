@@ -106,7 +106,8 @@ export function OrderTable({
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1.5">
                       <OrderStatusBadge status={order.status} />
-                      {canManage && (
+                      {order.saleId && <OnlineSaleTag />}
+                      {canManage && !order.saleId && (
                       <>
                       <label className="sr-only" htmlFor={`status-${order.id}`}>
                         Ubah status pesanan {order.customerName}
@@ -136,7 +137,7 @@ export function OrderTable({
                       >
                         <Eye className="h-4 w-4" aria-hidden="true" />
                       </Link>
-                      {canManage && (
+                      {canManage && !order.saleId && (
                       <>
                       <button
                         type="button"
@@ -185,7 +186,10 @@ export function OrderTable({
                   <p className="truncate text-sm font-medium text-neutral-800">{order.customerName}</p>
                   <p className="text-xs text-neutral-500">{formatDate(order.orderDate)}</p>
                 </Link>
-                <OrderStatusBadge status={order.status} />
+                <div className="flex flex-col items-end gap-1">
+                  <OrderStatusBadge status={order.status} />
+                  {order.saleId && <OnlineSaleTag />}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs text-neutral-600">
                 <p className="truncate">
@@ -206,7 +210,7 @@ export function OrderTable({
                 </p>
               </div>
 
-              {canManage && (
+              {canManage && !order.saleId && (
               <div className="flex flex-col gap-1.5 pt-1">
                 <label className="text-xs font-medium text-neutral-600" htmlFor={`status-mobile-${order.id}`}>
                   Ubah Status
@@ -234,7 +238,7 @@ export function OrderTable({
                   <Eye className="h-3.5 w-3.5" aria-hidden="true" />
                   Detail
                 </Link>
-                {canManage && (
+                {canManage && !order.saleId && (
                 <>
                 <button
                   type="button"
@@ -336,5 +340,17 @@ function TableSkeletonRows() {
         </tr>
       ))}
     </>
+  );
+}
+
+/** Penanda pesanan dari checkout katalog — status diubah lewat menu Penjualan Online. */
+function OnlineSaleTag() {
+  return (
+    <span
+      className="inline-flex w-fit rounded-full bg-primary-50 px-2 py-0.5 text-[11px] font-medium text-primary-700"
+      title="Dari checkout katalog online — kelola di menu Penjualan Online"
+    >
+      Online
+    </span>
   );
 }

@@ -26,6 +26,8 @@ function mapOrder(row: OrderRow): Order {
     promotionId: row.promotion_id ?? null,
     promotionCode: row.promotions?.code ?? "",
     discountAmount: Number(row.discount_amount ?? 0),
+    // Kolom dari migration-penjualan-online.sql (undefined bila belum dijalankan).
+    saleId: row.sale_id ?? null,
   };
 }
 

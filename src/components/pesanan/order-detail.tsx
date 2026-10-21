@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { CalendarDays, MessageCircle, Pencil, Phone } from "lucide-react";
+import { CalendarDays, MessageCircle, Pencil, Phone, ShoppingCart } from "lucide-react";
 import { cn, formatCurrency, formatDate, formatPhoneDisplay, toWhatsAppLink } from "@/lib/utils";
 import { OrderStatusBadge } from "@/components/pesanan/order-status-badge";
 import { ORDER_STATUS_OPTIONS } from "@/lib/order-status";
@@ -17,7 +17,10 @@ interface OrderDetailProps {
 }
 
 /** Detail pesanan: identitas pemesan, rincian produk, total bayar, dan perubahan status. */
-export function OrderDetail({ order: initialOrder, canManage = true }: OrderDetailProps) {
+export function OrderDetail({ order: initialOrder, canManage: canManageProp = true }: OrderDetailProps) {
+  // Pesanan dari checkout katalog dikelola lewat menu Penjualan Online.
+  const isOnlineSale = Boolean(initialOrder.saleId);
+  const canManage = canManageProp && !isOnlineSale;
   const { toast, showToast, dismissToast } = useToast();
   const [order, setOrder] = useState(initialOrder);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -37,6 +40,23 @@ export function OrderDetail({ order: initialOrder, canManage = true }: OrderDeta
 
   return (
     <div className="space-y-4">
+      {isOnlineSale && (
+        <div className="flex flex-col gap-3 rounded-xl border border-primary-200 bg-primary-50 p-4 text-sm text-primary-800 sm:flex-row sm:items-center sm:justify-between">
+          <p className="flex items-start gap-2">
+            <ShoppingCart className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+            Pesanan ini dibuat pembeli lewat katalog online. Pembayaran, pengiriman, dan statusnya dikelola di menu
+            Penjualan Online.
+          </p>
+          {canManageProp && (
+            <Link
+              href={`/penjualan/${initialOrder.saleId}`}
+              className="flex-shrink-0 rounded-lg bg-primary-700 px-3.5 py-2 text-center font-semibold text-white hover:bg-primary-800"
+            >
+              Buka Penjualan Online
+            </Link>
+          )}
+        </div>
+      )}
       <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-card sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>

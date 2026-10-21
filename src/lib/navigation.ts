@@ -8,6 +8,7 @@ import {
   Megaphone,
   BadgePercent,
   Layers,
+  ShoppingCart,
 } from "lucide-react";
 import type { NavItem } from "@/lib/types";
 
@@ -21,6 +22,8 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Anggota", href: "/dashboard/anggota", icon: Users },
   { label: "Produk", href: "/dashboard/produk", icon: ShoppingBag },
   { label: "Pesanan", href: "/dashboard/pesanan", icon: ClipboardList },
+  // Checkout pembeli dari katalog publik (keranjang, ongkir, bukti bayar).
+  { label: "Penjualan Online", href: "/penjualan", icon: ShoppingCart, adminOnly: true },
   { label: "Keuangan", href: "/keuangan", icon: Wallet, adminOnly: true },
   { label: "Pemasaran", href: "/pemasaran", icon: Megaphone },
   { label: "Promo & Diskon", href: "/promo", icon: BadgePercent },

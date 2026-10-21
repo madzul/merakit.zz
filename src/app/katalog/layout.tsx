@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MerakitLogo } from "@/components/merakit-logo";
+import { CartButton } from "@/components/katalog/cart-button";
 
 /** Kerangka halaman publik katalog (tanpa login, tanpa sidebar dashboard). */
 export default function KatalogLayout({ children }: { children: React.ReactNode }) {
@@ -14,9 +15,16 @@ export default function KatalogLayout({ children }: { children: React.ReactNode 
               <span className="block text-xs text-neutral-500">Rajut Inklusif · Binong, Bandung</span>
             </span>
           </Link>
-          <Link href="/login" className="rounded-lg border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-50">
-            Masuk
-          </Link>
+          <nav className="flex items-center gap-2" aria-label="Menu katalog">
+            <Link href="/katalog/pesanan" className="rounded-lg px-2.5 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-50">
+              <span className="sm:hidden">Lacak</span>
+              <span className="hidden sm:inline">Lacak Pesanan</span>
+            </Link>
+            <CartButton />
+            <Link href="/login" className="hidden rounded-lg border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-50 sm:block">
+              Masuk
+            </Link>
+          </nav>
         </div>
       </header>
 

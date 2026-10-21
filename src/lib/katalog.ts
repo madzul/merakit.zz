@@ -25,3 +25,13 @@ export function orderWhatsAppLink(number: string, product: { name: string; price
 export function siteOrigin(): string | undefined {
   return process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || undefined;
 }
+
+/** Tautan wa.me untuk pembeli yang sudah checkout (konfirmasi/pertanyaan pesanan). */
+export function saleWhatsAppLink(number: string, sale: { code: string; totalAmount: number }, pageUrl?: string): string {
+  const lines = [
+    `Halo MERAKIT, saya sudah memesan lewat katalog online dengan kode *${sale.code}* (total ${formatRupiah(sale.totalAmount)}).`,
+    "Mohon dibantu dicek, terima kasih.",
+  ];
+  if (pageUrl) lines.push(pageUrl);
+  return `https://wa.me/${number}?text=${encodeURIComponent(lines.join("\n"))}`;
+}
