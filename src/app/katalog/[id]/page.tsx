@@ -60,12 +60,15 @@ export default async function KatalogDetailPage({ params }: KatalogDetailPagePro
             <p className="mt-2 text-2xl font-semibold text-primary-700">{formatRupiah(product.price)}</p>
             <p className="mt-1 text-sm text-neutral-500">
               {product.stock > 0 ? "Siap kirim" : "Saat ini kosong — bisa dipesan, dibuatkan oleh perajin kami."}
+              {product.weightGrams ? <span className="text-neutral-400"> · Berat ±{product.weightGrams} g</span> : null}
             </p>
           </div>
 
           {product.description && <p className="whitespace-pre-line text-sm leading-relaxed text-neutral-700">{product.description}</p>}
 
-          <AddToCart product={{ id: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl }} />
+          <AddToCart
+            product={{ id: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl, weightGrams: product.weightGrams ?? null }}
+          />
 
           {whatsappNumber ? (
             <a

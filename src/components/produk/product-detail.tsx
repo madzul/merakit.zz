@@ -75,6 +75,11 @@ export function ProductDetail({ product, canManage = true }: ProductDetailProps)
           <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-card">
             <p className="text-sm font-medium text-neutral-500">Harga</p>
             <p className="mt-2 text-2xl font-semibold text-neutral-800">{formatCurrency(product.price)}</p>
+            {product.weightGrams !== undefined && (
+              <p className="mt-1 text-xs text-neutral-500">
+                Berat {product.weightGrams ? `±${product.weightGrams} g/pcs` : "belum diisi (dianggap 500 g untuk ongkir)"}
+              </p>
+            )}
           </div>
           <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-card">
             <p className="text-sm font-medium text-neutral-500">Stok</p>

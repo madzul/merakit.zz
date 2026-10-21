@@ -34,6 +34,8 @@ export interface CartProduct {
   price: number;
   imageUrl: string;
   inStock: boolean;
+  /** Berat per pcs (gram); null = belum diisi admin. */
+  weightGrams: number | null;
 }
 
 /**
@@ -55,6 +57,7 @@ export async function getCartProductsAction(ids: string[]): Promise<CartProduct[
       price: product.price,
       imageUrl: product.imageUrl,
       inStock: product.stock > 0,
+      weightGrams: product.weightGrams ?? null,
     }));
 }
 

@@ -22,6 +22,7 @@ interface FormValues {
   stock: string;
   imageUrl: string;
   isActive: boolean;
+  weightGrams: string;
 }
 
 interface FormErrors {
@@ -30,6 +31,7 @@ interface FormErrors {
   description?: string;
   price?: string;
   stock?: string;
+  weightGrams?: string;
 }
 
 function toFormValues(product?: Product): FormValues {
@@ -42,6 +44,7 @@ function toFormValues(product?: Product): FormValues {
       stock: "",
       imageUrl: PRODUCT_IMAGE_OPTIONS[0]?.value ?? "",
       isActive: true,
+      weightGrams: "",
     };
   }
   return {
@@ -52,6 +55,7 @@ function toFormValues(product?: Product): FormValues {
     stock: String(product.stock),
     imageUrl: product.imageUrl,
     isActive: product.isActive,
+    weightGrams: product.weightGrams != null ? String(product.weightGrams) : "",
   };
 }
 
@@ -104,6 +108,13 @@ export function ProductForm({ product }: ProductFormProps) {
       nextErrors.stock = "Stok harus berupa bilangan bulat 0 atau lebih.";
     }
 
+    if (values.weightGrams.trim()) {
+      const weightNumber = Number(values.weightGrams);
+      if (!Number.isInteger(weightNumber) || weightNumber < 1 || weightNumber > 30000) {
+        nextErrors.weightGrams = "Berat harus bilangan bulat 1–30.000 gram.";
+      }
+    }
+
     return nextErrors;
   }
 
@@ -127,6 +138,7 @@ export function ProductForm({ product }: ProductFormProps) {
       stock: Number(values.stock),
       imageUrl: values.imageUrl,
       isActive: values.isActive,
+      weightGrams: values.weightGrams.trim() ? Number(values.weightGrams) : null,
     };
 
     const result =
@@ -218,6 +230,27 @@ export function ProductForm({ product }: ProductFormProps) {
             placeholder="mis. 24"
             aria-invalid={Boolean(errors.stock)}
             className={cn(inputClassName, errors.stock ? "border-danger-500" : "border-neutral-200 focus:border-primary-500")}
+          />
+        </Field>
+
+        <Field
+          label="Berat (gram)"
+          htmlFor="weightGrams"
+          error={errors.weightGrams}
+          hint="Berat per pcs termasuk kemasan, untuk menghitung ongkir pesanan online. Kosong = dianggap 500 g."
+        >
+          <input
+            id="weightGrams"
+            type="number"
+            min={1}
+            max={30000}
+            step={1}
+            inputMode="numeric"
+            value={values.weightGrams}
+            onChange={(event) => setField("weightGrams", event.target.value)}
+            placeholder="mis. 250"
+            aria-invalid={Boolean(errors.weightGrams)}
+            className={cn(inputClassName, errors.weightGrams ? "border-danger-500" : "border-neutral-200 focus:border-primary-500")}
           />
         </Field>
 

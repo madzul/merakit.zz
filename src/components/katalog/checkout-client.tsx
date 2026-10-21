@@ -15,7 +15,7 @@ import {
   useCart,
 } from "@/lib/penjualan/cart-store";
 import { checkoutAction, getCartProductsAction } from "@/lib/penjualan/public-actions";
-import { detectShippingZone } from "@/lib/penjualan/shipping";
+import { detectShippingZone, formatKg, itemWeight, shippingCostFor, WEIGHT_TOLERANCE_GRAMS } from "@/lib/penjualan/shipping";
 import { MAX_LINE_QUANTITY } from "@/lib/penjualan/constants";
 import { cn, formatRupiah } from "@/lib/utils";
 import type { ShippingZone } from "@/lib/types";
@@ -81,7 +81,10 @@ export function CheckoutClient({ zones, onlinePaymentEnabled = false, notificati
   const zoneById = useMemo(() => new Map(zones.map((zone) => [zone.id, zone])), [zones]);
   const shippingMatch = form.deliveryMethod === "kirim" && form.address.trim().length >= 5 ? detectShippingZone(form.address) : null;
   const shippingZone = shippingMatch ? (zoneById.get(shippingMatch.zone) ?? null) : null;
-  const shippingCost = form.deliveryMethod === "ambil" ? 0 : (shippingZone?.cost ?? null);
+  // Ongkir berdasarkan total berat (pembaruan IOM-ITB); angka final dihitung database.
+  const totalWeight = items.reduce((sum, item) => sum + itemWeight(item.weightGrams) * item.quantity, 0);
+  const shippingQuote = shippingZone ? shippingCostFor(shippingZone, totalWeight) : null;
+  const shippingCost = form.deliveryMethod === "ambil" ? 0 : (shippingQuote?.cost ?? null);
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
@@ -262,15 +265,22 @@ export function CheckoutClient({ zones, onlinePaymentEnabled = false, notificati
                   className={inputClass}
                 />
               </label>
+              <p className="mt-1 text-xs text-neutral-400">
+                Ongkir dihitung dari kota/kabupaten pada alamat dan total berat pesanan (±{formatKg(totalWeight)}).
+              </p>
               {form.address.trim().length >= 5 &&
                 (shippingMatch && shippingZone ? (
                   <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-success-50 px-3 py-2 text-sm text-neutral-700">
                     <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-success-600" aria-hidden="true" />
                     <span>
-                      Ongkir ke <strong>{shippingMatch.matchedPlace}</strong>: <strong>{formatRupiah(shippingZone.cost)}</strong>{" "}
+                      Ongkir ke <strong>{shippingMatch.matchedPlace}</strong>: <strong>{formatRupiah(shippingQuote!.cost)}</strong>{" "}
                       <span className="text-neutral-500">
                         (tarif {shippingZone.label}
-                        {shippingMatch.byNearest ? ", wilayah tarif terdekat" : ""})
+                        {shippingMatch.byNearest ? ", wilayah tarif terdekat" : ""}; ditagih {shippingQuote!.billedKg} kg
+                        {shippingQuote!.billedKg > 1
+                          ? ` = ${formatRupiah(shippingZone.cost)} + ${shippingQuote!.billedKg - 1} × ${formatRupiah(shippingZone.extraPerKg)}`
+                          : ""}
+                        )
                       </span>
                     </span>
                   </p>
@@ -288,11 +298,18 @@ export function CheckoutClient({ zones, onlinePaymentEnabled = false, notificati
                     {zones.map((zone) => (
                       <li key={zone.id} className="flex justify-between gap-4">
                         <span>{zone.label}</span>
-                        <span className="font-medium">{formatRupiah(zone.cost)}</span>
+                        <span className="font-medium">
+                          {formatRupiah(zone.cost)}
+                          <span className="font-normal text-neutral-400"> + {formatRupiah(zone.extraPerKg)}/kg</span>
+                        </span>
                       </li>
                     ))}
                   </ul>
-                  <p className="mt-1 text-xs text-neutral-400">Alamat di luar daftar memakai tarif wilayah terdekat.</p>
+                  <p className="mt-1 text-xs text-neutral-400">
+                    Tarif untuk 1 kg pertama, ditambah tarif per kg berikutnya. Berat dibulatkan ke atas bila sisanya lebih
+                    dari {formatKg(WEIGHT_TOLERANCE_GRAMS)}. Alamat di luar daftar memakai tarif
+                    wilayah terdekat.
+                  </p>
                 </details>
               )}
             </div>
@@ -346,7 +363,10 @@ export function CheckoutClient({ zones, onlinePaymentEnabled = false, notificati
             <dd className="font-medium text-neutral-800">{formatRupiah(subtotal)}</dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-neutral-500">Ongkir</dt>
+            <dt className="text-neutral-500">
+              Ongkir
+              {form.deliveryMethod === "kirim" && shippingQuote ? ` (${shippingQuote.billedKg} kg)` : ""}
+            </dt>
             <dd className="font-medium text-neutral-800">
               {shippingCost === null ? <span className="text-neutral-400">lengkapi alamat</span> : shippingCost === 0 ? "Gratis" : formatRupiah(shippingCost)}
             </dd>

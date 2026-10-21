@@ -36,6 +36,8 @@ function mapSale(row: SaleRow): OnlineSale {
     address: row.address,
     shippingZoneLabel: row.shipping_zone_label,
     shippingCost: Number(row.shipping_cost),
+    shippingWeightGrams: row.shipping_weight_grams ?? null,
+    shippingBilledKg: row.shipping_billed_kg ?? null,
     subtotal: Number(row.subtotal),
     totalAmount: Number(row.total_amount),
     notes: row.notes,
@@ -149,14 +151,16 @@ export async function getShippingZones(activeOnly = false): Promise<ShippingZone
     id: row.id,
     label: row.label,
     cost: Number(row.cost),
+    // Sebelum migrasi ongkir berat: tarif per kg berikutnya = tarif 1 kg pertama.
+    extraPerKg: Number(row.extra_per_kg ?? row.cost),
     isActive: row.is_active,
     sortOrder: row.sort_order,
   }));
 }
 
-export async function updateShippingZone(id: string, cost: number, isActive: boolean): Promise<void> {
+export async function updateShippingZone(id: string, cost: number, extraPerKg: number, isActive: boolean): Promise<void> {
   const supabase = await createClient();
-  const { error } = await supabase.from("shipping_zones").update({ cost, is_active: isActive }).eq("id", id);
+  const { error } = await supabase.from("shipping_zones").update({ cost, extra_per_kg: extraPerKg, is_active: isActive }).eq("id", id);
   if (error) throw error;
 }
 
@@ -201,6 +205,8 @@ interface PublicSaleJson {
   address: string | null;
   shipping_zone_label: string | null;
   shipping_cost: number;
+  shipping_weight_grams?: number | null;
+  shipping_billed_kg?: number | null;
   subtotal: number;
   total_amount: number;
   notes: string | null;
@@ -240,6 +246,8 @@ export async function getPublicOnlineSale(token: string): Promise<PublicOnlineSa
     address: row.address,
     shippingZoneLabel: row.shipping_zone_label,
     shippingCost: Number(row.shipping_cost),
+    shippingWeightGrams: row.shipping_weight_grams ?? null,
+    shippingBilledKg: row.shipping_billed_kg ?? null,
     subtotal: Number(row.subtotal),
     totalAmount: Number(row.total_amount),
     notes: row.notes,

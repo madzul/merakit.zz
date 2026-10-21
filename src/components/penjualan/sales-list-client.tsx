@@ -40,7 +40,7 @@ export function SalesListClient({ sales }: { sales: OnlineSale[] }) {
   function handleExport() {
     downloadCsv(
       `penjualan-online-${new Date().toISOString().slice(0, 10)}.csv`,
-      ["Kode", "Tanggal", "Pembeli", "WhatsApp", "Email", "Pengiriman", "Alamat", "Produk", "Subtotal", "Ongkir", "Total", "Status Bayar", "Status", "Kurir", "Resi"],
+      ["Kode", "Tanggal", "Pembeli", "WhatsApp", "Email", "Pengiriman", "Alamat", "Produk", "Subtotal", "Berat Pesanan (g)", "Ongkir Ditagih (kg)", "Ongkir", "Total", "Status Bayar", "Status", "Kurir", "Resi"],
       filtered.map((sale) => [
         sale.code,
         sale.createdAt.slice(0, 10),
@@ -51,6 +51,8 @@ export function SalesListClient({ sales }: { sales: OnlineSale[] }) {
         sale.address ?? "",
         itemSummary(sale),
         sale.subtotal,
+        sale.shippingWeightGrams ?? "",
+        sale.shippingBilledKg ?? "",
         sale.shippingCost,
         sale.totalAmount,
         PAYMENT_STATUS_OPTIONS.find((o) => o.value === sale.paymentStatus)?.label ?? sale.paymentStatus,

@@ -18,6 +18,7 @@ import {
 } from "@/lib/penjualan/actions";
 import { DELIVERY_METHOD_LABELS, SALE_STATUS_LABELS, SALE_STATUS_OPTIONS, STATUSES_REQUIRING_PAYMENT } from "@/lib/penjualan/constants";
 import { formatPhoneDisplay, formatRupiah } from "@/lib/utils";
+import { shippingDetail } from "@/lib/penjualan/shipping";
 import type { ActionResult } from "@/lib/action-utils";
 import type { OnlineSale, OnlineSaleStatus, SaleNotificationLog } from "@/lib/types";
 
@@ -184,7 +185,7 @@ export function SaleDetailClient({ sale, proofUrl, trackingUrl, notifications, m
           <dl className="mt-2 space-y-1 border-t border-neutral-100 pt-2 text-sm">
             <div className="flex justify-between"><dt className="text-neutral-500">Subtotal</dt><dd>{formatRupiah(sale.subtotal)}</dd></div>
             <div className="flex justify-between">
-              <dt className="text-neutral-500">Ongkir{sale.shippingZoneLabel ? ` (${sale.shippingZoneLabel})` : ""}</dt>
+              <dt className="text-neutral-500">Ongkir{shippingDetail(sale.shippingZoneLabel, sale.shippingBilledKg)}</dt>
               <dd>{sale.shippingCost === 0 ? "Gratis" : formatRupiah(sale.shippingCost)}</dd>
             </div>
             <div className="flex justify-between text-base font-semibold"><dt>Total ditagihkan</dt><dd className="text-primary-700">{formatRupiah(sale.totalAmount)}</dd></div>

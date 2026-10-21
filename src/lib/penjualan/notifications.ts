@@ -36,6 +36,7 @@ interface SaleRowForNotify {
   address: string | null;
   shipping_cost: number;
   shipping_zone_label: string | null;
+  shipping_billed_kg?: number | null;
   total_amount: number;
   notes: string | null;
   payment_note: string | null;
@@ -77,6 +78,7 @@ export async function notifySaleEvent(saleId: string, event: SaleEvent): Promise
       address: row.address,
       shippingCost: Number(row.shipping_cost),
       shippingZoneLabel: row.shipping_zone_label,
+      shippingBilledKg: row.shipping_billed_kg ?? null,
       totalAmount: Number(row.total_amount),
       notes: row.notes,
       paymentNote: row.payment_note,
