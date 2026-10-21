@@ -384,6 +384,19 @@ export interface OnlineSale {
   trackingNumber: string | null;
   publicToken: string;
   items: OnlineSaleItem[];
+  paymentMethod: "manual" | "midtrans";
+  midtransOrderId: string | null;
+  midtransPaymentType: string | null;
+  midtransStatus: string | null;
+}
+
+export interface SaleNotificationLog {
+  eventKey: string;
+  channel: "email" | "whatsapp" | "admin_email" | "admin_whatsapp";
+  recipient: string | null;
+  status: "pending" | "sent" | "failed" | "skipped";
+  error: string | null;
+  createdAt: string;
 }
 
 /** Tampilan publik halaman lacak pesanan (tanpa data internal). */
@@ -406,6 +419,10 @@ export interface PublicOnlineSale {
   status: OnlineSaleStatus;
   courier: string | null;
   trackingNumber: string | null;
+  paymentMethod: "manual" | "midtrans";
+  paymentType: string | null;
+  /** Ada sesi Snap Midtrans yang masih berlaku. */
+  onlinePaymentPending: boolean;
   items: { productId: string | null; productName: string; imageUrl: string | null; quantity: number; unitPrice: number; totalAmount: number }[];
 }
 

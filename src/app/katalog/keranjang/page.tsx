@@ -3,6 +3,8 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { CheckoutClient } from "@/components/katalog/checkout-client";
 import { getShippingZones } from "@/lib/supabase/repositories/online-sales-repository";
+import { isMidtransEnabled } from "@/lib/penjualan/midtrans";
+import { isNotificationEnabled } from "@/lib/penjualan/notifications";
 import type { ShippingZone } from "@/lib/types";
 
 export const metadata: Metadata = {
@@ -25,7 +27,7 @@ export default async function KeranjangPage() {
         Lanjut belanja
       </Link>
       <h1 className="text-2xl font-semibold text-neutral-800">Keranjang &amp; Pemesanan</h1>
-      <CheckoutClient zones={zones} />
+      <CheckoutClient zones={zones} onlinePaymentEnabled={isMidtransEnabled()} notificationsEnabled={isNotificationEnabled()} />
     </div>
   );
 }

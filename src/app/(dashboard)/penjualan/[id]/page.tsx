@@ -5,7 +5,9 @@ import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
 import { SaleDetailClient } from "@/components/penjualan/sale-detail-client";
 import { siteOrigin } from "@/lib/katalog";
-import { getOnlineSaleById, getPaymentProofUrl } from "@/lib/supabase/repositories/online-sales-repository";
+import { getOnlineSaleById, getPaymentProofUrl, getSaleNotifications } from "@/lib/supabase/repositories/online-sales-repository";
+import { isMidtransEnabled } from "@/lib/penjualan/midtrans";
+import { paymentTypeLabel } from "@/lib/penjualan/notification-templates";
 
 interface PenjualanDetailPageProps {
   params: Promise<{ id: string }>;
@@ -16,7 +18,10 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 export default async function PenjualanDetailPage({ params }: PenjualanDetailPageProps) {
   const { id } = await params;
   const sale = UUID_PATTERN.test(id) ? await getOnlineSaleById(id).catch(() => null) : null;
-  const proofUrl = sale?.paymentProofPath ? await getPaymentProofUrl(sale.paymentProofPath) : null;
+  const [proofUrl, notifications] = await Promise.all([
+    sale?.paymentProofPath ? getPaymentProofUrl(sale.paymentProofPath) : Promise.resolve(null),
+    sale ? getSaleNotifications(sale.id) : Promise.resolve([]),
+  ]);
   // Halaman admin (sudah login) — header Host cukup sebagai cadangan bila NEXT_PUBLIC_SITE_URL kosong.
   let origin = siteOrigin();
   if (!origin) {
@@ -41,7 +46,13 @@ export default async function PenjualanDetailPage({ params }: PenjualanDetailPag
         }
       />
       {sale ? (
-        <SaleDetailClient key={`${sale.id}-${sale.status}-${sale.paymentStatus}`} sale={sale} proofUrl={proofUrl} trackingUrl={trackingUrl} />
+        <SaleDetailClient key={`${sale.id}-${sale.status}-${sale.paymentStatus}`} sale={sale}
+          proofUrl={proofUrl}
+          trackingUrl={trackingUrl}
+          notifications={notifications}
+          midtransEnabled={isMidtransEnabled()}
+          paymentTypeText={sale.midtransPaymentType ? paymentTypeLabel(sale.midtransPaymentType) : null}
+        />
       ) : (
         <EmptyState message="Data penjualan tidak ditemukan. Mungkin sudah dihapus atau tautan tidak valid." />
       )}

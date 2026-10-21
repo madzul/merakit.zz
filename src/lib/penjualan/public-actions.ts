@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
+import { notifySaleEvent, notifySaleEventByToken } from "@/lib/penjualan/notifications";
+import { startOnlinePayment, verifyOnlinePayment } from "@/lib/penjualan/online-payment";
+import { midtransClientConfig } from "@/lib/penjualan/midtrans";
 import { getActiveProducts } from "@/lib/supabase/repositories/products-repository";
 import {
   attachPaymentProof,
@@ -102,7 +106,9 @@ export async function checkoutAction(input: CheckoutFormInput): Promise<{ error?
     revalidatePath("/penjualan");
     revalidatePath("/dashboard/pesanan");
     revalidatePath("/dashboard");
-    return { token: result.publicToken, code: result.code };
+    const token = result.publicToken;
+    after(() => notifySaleEventByToken(token, { type: "created" }));
+    return { token, code: result.code };
   } catch (error) {
     return { error: databaseMessage(error, "Pesanan gagal dibuat. Silakan coba lagi atau hubungi kami via WhatsApp.") };
   }
@@ -136,5 +142,44 @@ export async function attachPaymentProofAction(token: string, path: string): Pro
   }
   revalidatePath(`/katalog/pesanan/${token}`);
   revalidatePath("/penjualan", "layout");
+  after(() => notifySaleEventByToken(token, { type: "proof_received", key: path }));
   return { success: true };
+}
+
+// ---------- Pembayaran online (Midtrans Snap) ----------
+
+export type OnlinePaymentStart =
+  | { snapToken: string; clientKey: string; snapScriptUrl: string }
+  | { paid: true }
+  | { error: string };
+
+/** Siapkan popup Snap untuk pesanan ini (sesi lama dipakai ulang bila masih berlaku). */
+export async function startOnlinePaymentAction(token: string): Promise<OnlinePaymentStart> {
+  if (!TOKEN_PATTERN.test(token)) return { error: "Pesanan tidak ditemukan." };
+  const result = await startOnlinePayment(token);
+  if (result.kind === "error") return { error: result.message };
+  if (result.kind === "paid") {
+    revalidatePath(`/katalog/pesanan/${token}`);
+    return { paid: true };
+  }
+  return { snapToken: result.snapToken, ...midtransClientConfig() };
+}
+
+/** Dipanggil setelah popup Snap selesai/ditutup — cek status langsung ke Midtrans. */
+export async function verifyOnlinePaymentAction(token: string): Promise<{ paid: boolean }> {
+  if (!TOKEN_PATTERN.test(token)) return { paid: false };
+  try {
+    const result = await verifyOnlinePayment({ publicToken: token });
+    if (result?.saleId) {
+      const saleId = result.saleId;
+      if (result.newlyPaid) {
+        after(() => notifySaleEvent(saleId, { type: "paid" }));
+      }
+      revalidatePath(`/katalog/pesanan/${token}`);
+      revalidatePath("/penjualan", "layout");
+    }
+    return { paid: Boolean(result?.paid) };
+  } catch {
+    return { paid: false };
+  }
 }

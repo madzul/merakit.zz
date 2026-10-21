@@ -5,6 +5,7 @@ import type {
   OnlineSale,
   OnlineSaleStatus,
   PublicOnlineSale,
+  SaleNotificationLog,
   ShippingZone,
 } from "@/lib/types";
 
@@ -47,6 +48,10 @@ function mapSale(row: SaleRow): OnlineSale {
     courier: row.courier,
     trackingNumber: row.tracking_number,
     publicToken: row.public_token,
+    paymentMethod: row.payment_method ?? "manual",
+    midtransOrderId: row.midtrans_order_id ?? null,
+    midtransPaymentType: row.midtrans_payment_type ?? null,
+    midtransStatus: row.midtrans_status ?? null,
     items: [...(row.orders ?? [])]
       .sort((a, b) => a.created_at.localeCompare(b.created_at))
       .map((order) => ({
@@ -206,6 +211,9 @@ interface PublicSaleJson {
   status: OnlineSaleStatus;
   courier: string | null;
   tracking_number: string | null;
+  payment_method?: "manual" | "midtrans";
+  payment_type?: string | null;
+  online_payment_pending?: boolean;
   items: {
     product_id: string | null;
     product_name: string;
@@ -242,6 +250,9 @@ export async function getPublicOnlineSale(token: string): Promise<PublicOnlineSa
     status: row.status,
     courier: row.courier,
     trackingNumber: row.tracking_number,
+    paymentMethod: row.payment_method ?? "manual",
+    paymentType: row.payment_type ?? null,
+    onlinePaymentPending: Boolean(row.online_payment_pending),
     items: (row.items ?? []).map((item) => ({
       productId: item.product_id,
       productName: item.product_name,
@@ -264,4 +275,23 @@ export async function attachPaymentProof(token: string, path: string): Promise<v
   const supabase = await createClient();
   const { error } = await supabase.rpc("attach_payment_proof", { p_token: token, p_path: path });
   if (error) throw error;
+}
+
+/** Riwayat notifikasi email/WhatsApp sebuah penjualan (khusus admin). */
+export async function getSaleNotifications(saleId: string): Promise<SaleNotificationLog[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("sale_notifications")
+    .select("*")
+    .eq("sale_id", saleId)
+    .order("created_at", { ascending: true });
+  if (error) return [];
+  return (data ?? []).map((row) => ({
+    eventKey: row.event_key,
+    channel: row.channel,
+    recipient: row.recipient,
+    status: row.status,
+    error: row.error,
+    createdAt: row.created_at,
+  }));
 }

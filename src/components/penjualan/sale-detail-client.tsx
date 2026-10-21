@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { BadgeCheck, Copy, ExternalLink, ImageOff, MessageCircle, RotateCcw, Trash2, XCircle } from "lucide-react";
+import { BadgeCheck, Bell, Copy, CreditCard, ExternalLink, ImageOff, MessageCircle, RefreshCw, RotateCcw, Trash2, XCircle } from "lucide-react";
 import { ProductImage } from "@/components/produk/product-image";
 import { PaymentStatusBadge, SaleStatusBadge } from "@/components/penjualan/sale-badges";
 import { SaleProgress } from "@/components/katalog/sale-progress";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ToastViewport, useToast } from "@/components/ui/toast";
 import {
+  checkMidtransStatusAction,
   confirmPaymentAction,
   deleteSaleAction,
   rejectPaymentAction,
@@ -18,13 +19,47 @@ import {
 import { DELIVERY_METHOD_LABELS, SALE_STATUS_LABELS, SALE_STATUS_OPTIONS, STATUSES_REQUIRING_PAYMENT } from "@/lib/penjualan/constants";
 import { formatPhoneDisplay, formatRupiah } from "@/lib/utils";
 import type { ActionResult } from "@/lib/action-utils";
-import type { OnlineSale, OnlineSaleStatus } from "@/lib/types";
+import type { OnlineSale, OnlineSaleStatus, SaleNotificationLog } from "@/lib/types";
 
 interface SaleDetailClientProps {
   sale: OnlineSale;
   proofUrl: string | null;
   /** Tautan lacak untuk pembeli (absolut bila NEXT_PUBLIC_SITE_URL diisi). */
   trackingUrl: string;
+  notifications: SaleNotificationLog[];
+  midtransEnabled: boolean;
+  /** Label metode bayar Midtrans (mis. "QRIS"), dihitung server. */
+  paymentTypeText: string | null;
+}
+
+const CHANNEL_LABELS: Record<SaleNotificationLog["channel"], string> = {
+  whatsapp: "WA pembeli",
+  email: "Email pembeli",
+  admin_whatsapp: "WA admin",
+  admin_email: "Email admin",
+};
+
+const NOTIF_STATUS_STYLES: Record<SaleNotificationLog["status"], string> = {
+  sent: "bg-success-50 text-success-600",
+  pending: "bg-warning-50 text-warning-600",
+  failed: "bg-danger-50 text-danger-600",
+  skipped: "bg-neutral-100 text-neutral-500",
+};
+
+const NOTIF_STATUS_LABELS: Record<SaleNotificationLog["status"], string> = {
+  sent: "Terkirim",
+  pending: "Mengirim",
+  failed: "Gagal",
+  skipped: "Dilewati",
+};
+
+function eventLabel(key: string): string {
+  if (key === "created") return "Pesanan diterima";
+  if (key === "paid") return "Pembayaran berhasil";
+  if (key.startsWith("proof_received")) return "Bukti bayar diterima";
+  if (key.startsWith("proof_rejected")) return "Bukti bayar ditolak";
+  if (key.startsWith("status:")) return `Status: ${SALE_STATUS_LABELS[key.slice(7) as OnlineSaleStatus] ?? key.slice(7)}`;
+  return key;
 }
 
 const inputClass =
@@ -56,7 +91,7 @@ function whatsAppLink(phone: string, text: string) {
   return `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(text)}`;
 }
 
-export function SaleDetailClient({ sale, proofUrl, trackingUrl }: SaleDetailClientProps) {
+export function SaleDetailClient({ sale, proofUrl, trackingUrl, notifications, midtransEnabled, paymentTypeText }: SaleDetailClientProps) {
   const router = useRouter();
   const { toast, showToast, dismissToast } = useToast();
   const [busy, setBusy] = useState(false);
@@ -69,7 +104,7 @@ export function SaleDetailClient({ sale, proofUrl, trackingUrl }: SaleDetailClie
     trackingNumber: sale.trackingNumber ?? "",
   });
 
-  async function run(action: () => Promise<ActionResult>, successMessage: string) {
+  async function run(action: () => Promise<ActionResult & { message?: string }>, successMessage: string) {
     setBusy(true);
     const result = await action();
     setBusy(false);
@@ -77,12 +112,13 @@ export function SaleDetailClient({ sale, proofUrl, trackingUrl }: SaleDetailClie
       showToast(result.error, "danger");
       return false;
     }
-    showToast(successMessage, "success");
+    showToast(result.message ?? successMessage, "success");
     router.refresh();
     return true;
   }
 
   const isPaid = sale.paymentStatus === "lunas";
+  const paidOnline = isPaid && sale.paymentMethod === "midtrans";
   const isCancelled = sale.status === "Dibatalkan";
   const statusChanged =
     statusForm.status !== sale.status ||
@@ -189,12 +225,42 @@ export function SaleDetailClient({ sale, proofUrl, trackingUrl }: SaleDetailClie
             {sale.paymentProofUploadedAt && <p className="text-neutral-500">Bukti diunggah {formatDateTime(sale.paymentProofUploadedAt)}.</p>}
             {sale.paidAt && isPaid && <p className="text-success-600">Dikonfirmasi lunas {formatDateTime(sale.paidAt)}.</p>}
             {sale.paymentStatus === "ditolak" && sale.paymentNote && <p className="text-danger-600">Ditolak: {sale.paymentNote}</p>}
+            {paidOnline && (
+              <p className="flex items-start gap-2 rounded-lg bg-success-50 px-3 py-2 text-success-600">
+                <CreditCard className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                <span>
+                  Dibayar online via {paymentTypeText ?? "Midtrans"} — dikonfirmasi otomatis oleh Midtrans
+                  {sale.midtransOrderId ? ` (order ID ${sale.midtransOrderId})` : ""}.
+                </span>
+              </p>
+            )}
+            {!isPaid && sale.midtransOrderId && (
+              <div className="flex flex-wrap items-center gap-2 rounded-lg bg-info-50 px-3 py-2 text-info-600">
+                <CreditCard className="h-4 w-4" aria-hidden="true" />
+                <span>
+                  Pembeli memulai pembayaran online{sale.midtransStatus ? ` — status Midtrans: ${sale.midtransStatus}` : ""}.
+                </span>
+                {midtransEnabled && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => run(() => checkMidtransStatusAction(sale.id), "Status Midtrans diperbarui.")}
+                    className="ml-auto flex items-center gap-1 rounded-md border border-info-600/30 px-2.5 py-1 text-xs font-medium hover:bg-white disabled:opacity-60"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
+                    Cek status Midtrans
+                  </button>
+                )}
+              </div>
+            )}
+            {!paidOnline && (
             <p className="text-neutral-500">
               Cocokkan nominal <strong className="text-neutral-800">{formatRupiah(sale.totalAmount)}</strong> dengan mutasi rekening/QRIS sebelum
               mengonfirmasi. Untuk pembayaran tunai saat diambil, cukup tandai lunas.
             </p>
+            )}
 
-            {!isCancelled && (
+            {!isCancelled && !paidOnline && (
               <div className="flex flex-wrap gap-2">
                 {!isPaid ? (
                   <>
@@ -324,6 +390,34 @@ export function SaleDetailClient({ sale, proofUrl, trackingUrl }: SaleDetailClie
             Hapus penjualan
           </button>
         </div>
+      </section>
+
+      <section className="rounded-xl border border-neutral-200 bg-white p-5 shadow-card sm:p-6">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-neutral-800">
+          <Bell className="h-4 w-4 text-neutral-400" aria-hidden="true" />
+          Notifikasi Otomatis
+        </h2>
+        {notifications.length === 0 ? (
+          <p className="mt-2 text-sm text-neutral-500">
+            Belum ada notifikasi tercatat. Email & WhatsApp otomatis aktif bila MAIL_USER/MAIL_PASS dan WA_API_URL/WA_API_KEY diisi
+            (lihat README). Tombol &quot;Kabari pembeli&quot; tetap bisa dipakai kapan saja.
+          </p>
+        ) : (
+          <ul className="mt-2 divide-y divide-neutral-100 text-sm">
+            {notifications.map((log, index) => (
+              <li key={`${log.eventKey}-${log.channel}-${index}`} className="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-neutral-700">
+                  {eventLabel(log.eventKey)} · <span className="text-neutral-500">{CHANNEL_LABELS[log.channel]}</span>
+                  {log.error && log.status !== "sent" && <span className="block text-xs text-neutral-400">{log.error}</span>}
+                </span>
+                <span className="flex items-center gap-2 text-xs text-neutral-400">
+                  {formatDateTime(log.createdAt)}
+                  <span className={`rounded-full px-2 py-0.5 font-medium ${NOTIF_STATUS_STYLES[log.status]}`}>{NOTIF_STATUS_LABELS[log.status]}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <ConfirmDialog

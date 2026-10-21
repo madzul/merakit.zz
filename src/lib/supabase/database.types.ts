@@ -233,6 +233,14 @@ export interface Database {
           tracking_number: string | null;
           created_at: string;
           updated_at: string;
+          // migration-pembayaran-notifikasi.sql
+          payment_method: "manual" | "midtrans";
+          midtrans_order_id: string | null;
+          midtrans_snap_token: string | null;
+          midtrans_snap_expires_at: string | null;
+          midtrans_transaction_id: string | null;
+          midtrans_payment_type: string | null;
+          midtrans_status: string | null;
         };
         // Baris baru hanya lewat fungsi create_online_sale().
         Insert: never;
@@ -244,7 +252,67 @@ export interface Database {
           courier?: string | null;
           tracking_number?: string | null;
           notes?: string | null;
+          payment_method?: "manual" | "midtrans";
+          midtrans_order_id?: string | null;
+          midtrans_snap_token?: string | null;
+          midtrans_snap_expires_at?: string | null;
+          midtrans_transaction_id?: string | null;
+          midtrans_payment_type?: string | null;
+          midtrans_status?: string | null;
         };
+        Relationships: [];
+      };
+      // migration-pembayaran-notifikasi.sql (ditulis server dengan service role)
+      payment_events: {
+        Row: {
+          id: number;
+          source: string;
+          order_id: string | null;
+          sale_id: string | null;
+          transaction_status: string | null;
+          payload: Json | null;
+          signature_valid: boolean | null;
+          processed: boolean;
+          error: string | null;
+          ip_address: string | null;
+          created_at: string;
+        };
+        Insert: {
+          source: string;
+          order_id?: string | null;
+          sale_id?: string | null;
+          transaction_status?: string | null;
+          payload?: Json | null;
+          signature_valid?: boolean | null;
+          processed?: boolean;
+          error?: string | null;
+          ip_address?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["payment_events"]["Insert"]>;
+        Relationships: [];
+      };
+      sale_notifications: {
+        Row: {
+          id: number;
+          sale_id: string;
+          event_key: string;
+          channel: "email" | "whatsapp" | "admin_email" | "admin_whatsapp";
+          recipient: string | null;
+          status: "pending" | "sent" | "failed" | "skipped";
+          error: string | null;
+          created_at: string;
+          sent_at: string | null;
+        };
+        Insert: {
+          sale_id: string;
+          event_key: string;
+          channel: "email" | "whatsapp" | "admin_email" | "admin_whatsapp";
+          recipient?: string | null;
+          status?: "pending" | "sent" | "failed" | "skipped";
+          error?: string | null;
+          sent_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["sale_notifications"]["Insert"]>;
         Relationships: [];
       };
       shipping_zones: {

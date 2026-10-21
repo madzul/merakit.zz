@@ -4,6 +4,9 @@ import { notFound } from "next/navigation";
 import { CheckCircle2, Clock, MessageCircle, Package, XCircle } from "lucide-react";
 import { ProductImage } from "@/components/produk/product-image";
 import { PaymentProofUpload } from "@/components/katalog/payment-proof-upload";
+import { OnlinePaymentButton } from "@/components/katalog/online-payment-button";
+import { isMidtransEnabled } from "@/lib/penjualan/midtrans";
+import { paymentTypeLabel } from "@/lib/penjualan/notification-templates";
 import { SaleProgress } from "@/components/katalog/sale-progress";
 import { getOrderWhatsAppNumber, saleWhatsAppLink, siteOrigin } from "@/lib/katalog";
 import { getPaymentInfo, hasPaymentInfo } from "@/lib/penjualan/config";
@@ -19,7 +22,7 @@ export const metadata: Metadata = {
 
 interface StatusPesananPageProps {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ baru?: string }>;
+  searchParams: Promise<{ baru?: string; bayar?: string }>;
 }
 
 function formatDateTime(iso: string) {
@@ -27,7 +30,7 @@ function formatDateTime(iso: string) {
 }
 
 export default async function StatusPesananPage({ params, searchParams }: StatusPesananPageProps) {
-  const [{ token }, { baru }] = await Promise.all([params, searchParams]);
+  const [{ token }, { baru, bayar }] = await Promise.all([params, searchParams]);
   const sale = await getPublicOnlineSale(token).catch(() => null);
   if (!sale) notFound();
 
@@ -36,6 +39,9 @@ export default async function StatusPesananPage({ params, searchParams }: Status
   const origin = siteOrigin();
   const pageUrl = origin ? `${origin}/katalog/pesanan/${token}` : undefined;
   const canPay = sale.status !== "Dibatalkan" && sale.paymentStatus !== "lunas";
+  const onlinePayment = isMidtransEnabled();
+  // Bukti transfer yang sedang diperiksa: jangan dorong pembeli membayar dua kali.
+  const showOnlineButton = onlinePayment && sale.paymentStatus !== "menunggu_verifikasi";
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
@@ -103,43 +109,55 @@ export default async function StatusPesananPage({ params, searchParams }: Status
             Total yang perlu dibayar: <strong className="text-lg text-primary-700">{formatRupiah(sale.totalAmount)}</strong>
           </p>
 
-          {hasPaymentInfo(payment) ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {payment.bankLines.length > 0 && (
-                <div className="rounded-xl bg-neutral-50 p-4 text-sm text-neutral-700">
-                  <p className="font-semibold">Transfer bank</p>
-                  {payment.bankLines.map((line) => (
-                    <p key={line} className="mt-1 select-all">
-                      {line}
-                    </p>
-                  ))}
-                </div>
-              )}
-              {payment.qrisImageUrl && (
-                <div className="rounded-xl bg-neutral-50 p-4 text-sm text-neutral-700">
-                  <p className="font-semibold">Scan QRIS</p>
-                  <a href={payment.qrisImageUrl} target="_blank" rel="noopener noreferrer" title="Buka QRIS ukuran penuh">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- gambar QRIS statis dari env */}
-                    <img src={payment.qrisImageUrl} alt="QRIS pembayaran MERAKIT" className="mt-2 w-full max-w-[220px] rounded-lg border border-neutral-200" />
-                  </a>
-                  <p className="mt-1 text-xs text-neutral-500">Ketik nominal {formatRupiah(sale.totalAmount)} saat membayar.</p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <p className="rounded-lg bg-neutral-100 px-3 py-2 text-sm text-neutral-600">
-              Admin MERAKIT akan mengirimkan instruksi pembayaran lewat WhatsApp. Setelah membayar, unggah buktinya di sini.
-            </p>
+          {showOnlineButton && (
+            <OnlinePaymentButton token={token} autoStart={bayar === "1"} resume={sale.onlinePaymentPending} />
           )}
 
-          <PaymentProofUpload token={token} hasProof={sale.hasPaymentProof} />
+          <details open={!showOnlineButton} className="group rounded-xl border border-neutral-200 p-4">
+            <summary className="cursor-pointer select-none text-sm font-semibold text-neutral-700">
+              {showOnlineButton ? "Atau transfer manual & unggah bukti" : "Transfer & unggah bukti pembayaran"}
+            </summary>
+            <div className="mt-3 space-y-4">
+              {hasPaymentInfo(payment) ? (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {payment.bankLines.length > 0 && (
+                    <div className="rounded-xl bg-neutral-50 p-4 text-sm text-neutral-700">
+                      <p className="font-semibold">Transfer bank</p>
+                      {payment.bankLines.map((line) => (
+                        <p key={line} className="mt-1 select-all">
+                          {line}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                  {payment.qrisImageUrl && (
+                    <div className="rounded-xl bg-neutral-50 p-4 text-sm text-neutral-700">
+                      <p className="font-semibold">Scan QRIS</p>
+                      <a href={payment.qrisImageUrl} target="_blank" rel="noopener noreferrer" title="Buka QRIS ukuran penuh">
+                        {/* eslint-disable-next-line @next/next/no-img-element -- gambar QRIS statis dari env */}
+                        <img src={payment.qrisImageUrl} alt="QRIS pembayaran MERAKIT" className="mt-2 w-full max-w-[220px] rounded-lg border border-neutral-200" />
+                      </a>
+                      <p className="mt-1 text-xs text-neutral-500">Ketik nominal {formatRupiah(sale.totalAmount)} saat membayar.</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="rounded-lg bg-neutral-100 px-3 py-2 text-sm text-neutral-600">
+                  Admin MERAKIT akan mengirimkan instruksi pembayaran lewat WhatsApp. Setelah membayar, unggah buktinya di sini.
+                </p>
+              )}
+
+              <PaymentProofUpload token={token} hasProof={sale.hasPaymentProof} />
+            </div>
+          </details>
         </section>
       )}
 
       {sale.paymentStatus === "lunas" && sale.status !== "Dibatalkan" && (
         <p className="flex items-center gap-2 rounded-2xl bg-success-50 px-4 py-3 text-sm font-medium text-success-600">
           <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
-          Pembayaran sudah dikonfirmasi. Terima kasih telah mendukung perajin MERAKIT!
+          Pembayaran sudah dikonfirmasi{sale.paymentMethod === "midtrans" ? ` (${paymentTypeLabel(sale.paymentType)})` : ""}. Terima kasih
+          telah mendukung perajin MERAKIT!
         </p>
       )}
 

@@ -1,6 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { notifySaleEvent } from "@/lib/penjualan/notifications";
+import { verifyOnlinePayment } from "@/lib/penjualan/online-payment";
 import { getCurrentProfile } from "@/lib/supabase/repositories/profiles-repository";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -53,6 +56,7 @@ export async function confirmPaymentAction(id: string): Promise<ActionResult> {
   } catch {
     return { error: "Gagal mengonfirmasi pembayaran. Silakan coba lagi." };
   }
+  after(() => notifySaleEvent(id, { type: "paid" }));
   revalidateSale(id);
   return { success: true };
 }
@@ -71,6 +75,9 @@ export async function rejectPaymentAction(id: string, reason: string): Promise<A
   } catch {
     return { error: "Gagal menolak bukti pembayaran. Silakan coba lagi." };
   }
+  // Kunci per bukti: bukti baru yang ditolak lagi tetap dikabarkan.
+  const rejectionKey = sale.paymentProofPath ?? sale.paymentProofUploadedAt ?? new Date().toISOString();
+  after(() => notifySaleEvent(id, { type: "proof_rejected", key: rejectionKey }));
   revalidateSale(id);
   return { success: true };
 }
@@ -81,6 +88,9 @@ export async function undoPaymentAction(id: string): Promise<ActionResult> {
   if (authError) return { error: authError };
   const sale = await getOnlineSaleById(id).catch(() => null);
   if (!sale) return { error: "Penjualan tidak ditemukan." };
+  if (sale.paymentMethod === "midtrans" && sale.paymentStatus === "lunas") {
+    return { error: "Pembayaran online dikonfirmasi otomatis oleh Midtrans dan tidak bisa dibatalkan di sini. Proses refund lewat Dashboard Midtrans." };
+  }
   if (STATUSES_REQUIRING_PAYMENT.includes(sale.status)) {
     return { error: `Ubah status dari "${SALE_STATUS_LABELS[sale.status]}" ke tahap sebelumnya dulu.` };
   }
@@ -122,6 +132,10 @@ export async function updateSaleStatusAction(id: string, input: SaleStatusInput)
   } catch {
     return { error: "Gagal memperbarui status. Silakan coba lagi." };
   }
+  if (input.status !== sale.status) {
+    const status = input.status;
+    after(() => notifySaleEvent(id, { type: "status", status }));
+  }
   revalidateSale(id);
   return { success: true };
 }
@@ -159,4 +173,19 @@ export async function updateShippingZoneAction(id: string, cost: number, isActiv
   revalidatePath("/penjualan");
   revalidatePath("/katalog/keranjang");
   return { success: true };
+}
+
+/** Tanya status pembayaran langsung ke Midtrans (bila webhook terlambat/belum dipasang). */
+export async function checkMidtransStatusAction(id: string): Promise<ActionResult & { message?: string }> {
+  const authError = await requireAdmin();
+  if (authError) return { error: authError };
+  try {
+    const result = await verifyOnlinePayment({ saleId: id });
+    if (!result) return { error: "Penjualan ini belum punya sesi pembayaran online, atau Midtrans belum diaktifkan." };
+    if (result.newlyPaid) after(() => notifySaleEvent(id, { type: "paid" }));
+    revalidateSale(id);
+    return { success: true, message: result.paid ? "Midtrans: pembayaran lunas." : `Midtrans: ${result.message}.` };
+  } catch {
+    return { error: "Gagal menghubungi Midtrans. Coba lagi." };
+  }
 }

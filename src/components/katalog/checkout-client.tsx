@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { LoaderCircle, MapPin, Minus, Plus, Store, Trash2, Truck } from "lucide-react";
+import { Banknote, CreditCard, LoaderCircle, MapPin, Minus, Plus, Store, Trash2, Truck } from "lucide-react";
 import { ProductImage } from "@/components/produk/product-image";
 import { EmptyState } from "@/components/empty-state";
 import {
@@ -22,6 +22,10 @@ import type { ShippingZone } from "@/lib/types";
 
 interface CheckoutClientProps {
   zones: ShippingZone[];
+  /** Midtrans aktif → pembeli bisa memilih bayar online. */
+  onlinePaymentEnabled?: boolean;
+  /** Notifikasi otomatis aktif → beri tahu pembeli konfirmasi dikirim ke WA/email. */
+  notificationsEnabled?: boolean;
 }
 
 const noopSubscribe = () => () => {};
@@ -30,7 +34,7 @@ const inputClass =
   "mt-1 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-800 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/40";
 
 /** Keranjang + form pembeli + ringkasan ongkir → buat penjualan online. */
-export function CheckoutClient({ zones }: CheckoutClientProps) {
+export function CheckoutClient({ zones, onlinePaymentEnabled = false, notificationsEnabled = false }: CheckoutClientProps) {
   const router = useRouter();
   const items = useCart();
   // false saat render server & hidrasi awal (keranjang di localStorage belum terbaca).
@@ -48,6 +52,7 @@ export function CheckoutClient({ zones }: CheckoutClientProps) {
     notes: "",
   });
   const refreshedOnce = useRef(false);
+  const [paymentChoice, setPaymentChoice] = useState<"online" | "manual">(onlinePaymentEnabled ? "online" : "manual");
 
   // Segarkan harga & ketersediaan produk sekali saat halaman dibuka.
   useEffect(() => {
@@ -101,7 +106,7 @@ export function CheckoutClient({ zones }: CheckoutClientProps) {
       return;
     }
     clearCart();
-    router.push(`/katalog/pesanan/${result.token}?baru=1`);
+    router.push(`/katalog/pesanan/${result.token}?baru=1${paymentChoice === "online" && onlinePaymentEnabled ? "&bayar=1" : ""}`);
   }
 
   if (!hydrated) {
@@ -297,6 +302,35 @@ export function CheckoutClient({ zones }: CheckoutClientProps) {
             </p>
           )}
 
+          {onlinePaymentEnabled && (
+            <fieldset>
+              <legend className="text-sm font-medium text-neutral-700">Pembayaran</legend>
+              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {(
+                  [
+                    { value: "online", label: "Bayar online", hint: "QRIS, VA, e-wallet, kartu — otomatis terkonfirmasi", Icon: CreditCard },
+                    { value: "manual", label: "Transfer manual", hint: "Transfer/QRIS lalu unggah bukti", Icon: Banknote },
+                  ] as const
+                ).map(({ value, label, hint, Icon }) => (
+                  <label
+                    key={value}
+                    className={cn(
+                      "flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-sm",
+                      paymentChoice === value ? "border-primary-700 bg-primary-50" : "border-neutral-200 hover:bg-neutral-50"
+                    )}
+                  >
+                    <input type="radio" name="payment" value={value} checked={paymentChoice === value} onChange={() => setPaymentChoice(value)} className="sr-only" />
+                    <Icon className={cn("mt-0.5 h-5 w-5 flex-shrink-0", paymentChoice === value ? "text-primary-700" : "text-neutral-400")} aria-hidden="true" />
+                    <span>
+                      <span className="block font-semibold text-neutral-800">{label}</span>
+                      <span className="block text-xs text-neutral-500">{hint}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
+
           <label className="block text-sm font-medium text-neutral-700">
             Catatan <span className="font-normal text-neutral-400">(opsional)</span>
             <textarea rows={2} maxLength={500} placeholder="Mis. warna pilihan, ukuran, untuk kado" value={form.notes} onChange={(e) => update("notes", e.target.value)} className={inputClass} />
@@ -335,11 +369,17 @@ export function CheckoutClient({ zones }: CheckoutClientProps) {
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-700 px-5 py-3.5 text-base font-semibold text-white hover:bg-primary-800 disabled:opacity-60"
         >
           {(submitting || refreshing) && <LoaderCircle className="h-5 w-5 animate-spin" aria-hidden="true" />}
-          {submitting ? "Memproses…" : refreshing ? "Memperbarui harga…" : "Buat Pesanan"}
+          {submitting
+            ? "Memproses…"
+            : refreshing
+              ? "Memperbarui harga…"
+              : paymentChoice === "online" && onlinePaymentEnabled
+                ? "Pesan & Bayar Online"
+                : "Buat Pesanan"}
         </button>
         <p className="text-xs leading-relaxed text-neutral-500">
-          Setelah pesanan dibuat, Anda mendapat kode pesanan, instruksi pembayaran (transfer/QRIS), dan tautan untuk
-          mengunggah bukti bayar serta memantau status pesanan.
+          Setelah pesanan dibuat, Anda mendapat kode pesanan dan tautan untuk membayar serta memantau status pesanan.
+          {notificationsEnabled && " Konfirmasi dan kabar status pesanan juga kami kirim ke WhatsApp (dan email, bila diisi)."}
         </p>
       </aside>
     </form>

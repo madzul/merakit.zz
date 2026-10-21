@@ -25,3 +25,8 @@ export function createAdminClient() {
 export function isAccountCreationEnabled(): boolean {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
 }
+
+/** Service role tersedia — dibutuhkan pembayaran online & notifikasi otomatis. */
+export function isServiceRoleConfigured(): boolean {
+  return isAccountCreationEnabled();
+}
