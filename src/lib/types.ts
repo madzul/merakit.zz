@@ -380,6 +380,12 @@ export interface OnlineSale {
   /** Total berat pesanan (gram) & kg yang ditagih untuk ongkir (null = pesanan lama/ambil sendiri). */
   shippingWeightGrams: number | null;
   shippingBilledKg: number | null;
+  /** Sumber tarif: "rajaongkir" | "agenwebsite" | "table" (null = pesanan lama/ambil sendiri). */
+  shippingProvider: string | null;
+  /** Layanan kurir dari tarif live, mis. "J&T Express EZ". */
+  shippingService: string | null;
+  shippingPostalCode: string | null;
+  shippingEtd: string | null;
   subtotal: number;
   totalAmount: number;
   notes: string | null;
@@ -420,6 +426,9 @@ export interface PublicOnlineSale {
   shippingCost: number;
   shippingWeightGrams: number | null;
   shippingBilledKg: number | null;
+  shippingService: string | null;
+  shippingPostalCode: string | null;
+  shippingEtd: string | null;
   subtotal: number;
   totalAmount: number;
   notes: string | null;

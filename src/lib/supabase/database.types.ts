@@ -247,6 +247,11 @@ export interface Database {
           // migration-ongkir-berat.sql
           shipping_weight_grams: number | null;
           shipping_billed_kg: number | null;
+          // migration-ongkir-live.sql
+          shipping_provider: string | null;
+          shipping_service: string | null;
+          shipping_postal_code: string | null;
+          shipping_etd: string | null;
         };
         // Baris baru hanya lewat fungsi create_online_sale().
         Insert: never;
@@ -589,6 +594,10 @@ export interface Database {
           p_shipping_zone: string | null;
           p_notes: string | null;
           p_items: Json;
+          // migration-ongkir-live.sql
+          p_postal_code?: string | null;
+          /** Hanya diterima dari service role. */
+          p_live_shipping?: Json | null;
         };
         Returns: { code: string; public_token: string }[];
       };

@@ -55,3 +55,10 @@ export const PAYMENT_PROOF_BUCKET = "payment-proofs";
 
 export const MAX_CART_LINES = 20;
 export const MAX_LINE_QUANTITY = 99;
+
+/** Sumber tarif ongkir (online_sales.shipping_provider). */
+export const SHIPPING_PROVIDER_LABELS: Record<string, string> = {
+  rajaongkir: "RajaOngkir",
+  agenwebsite: "AgenWebsite",
+  table: "Tabel zona",
+};

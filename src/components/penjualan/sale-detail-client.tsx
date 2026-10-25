@@ -16,7 +16,7 @@ import {
   undoPaymentAction,
   updateSaleStatusAction,
 } from "@/lib/penjualan/actions";
-import { DELIVERY_METHOD_LABELS, SALE_STATUS_LABELS, SALE_STATUS_OPTIONS, STATUSES_REQUIRING_PAYMENT } from "@/lib/penjualan/constants";
+import { SHIPPING_PROVIDER_LABELS, DELIVERY_METHOD_LABELS, SALE_STATUS_LABELS, SALE_STATUS_OPTIONS, STATUSES_REQUIRING_PAYMENT } from "@/lib/penjualan/constants";
 import { formatPhoneDisplay, formatRupiah } from "@/lib/utils";
 import { shippingDetail } from "@/lib/penjualan/shipping";
 import type { ActionResult } from "@/lib/action-utils";
@@ -200,6 +200,21 @@ export function SaleDetailClient({ sale, proofUrl, trackingUrl, notifications, m
             {sale.customerEmail && <div><dt className="text-xs text-neutral-400">Email</dt><dd>{sale.customerEmail}</dd></div>}
             <div><dt className="text-xs text-neutral-400">Metode</dt><dd>{DELIVERY_METHOD_LABELS[sale.deliveryMethod]}</dd></div>
             {sale.address && <div><dt className="text-xs text-neutral-400">Alamat</dt><dd className="whitespace-pre-line select-all">{sale.address}</dd></div>}
+            {sale.shippingPostalCode && <div><dt className="text-xs text-neutral-400">Kode pos</dt><dd className="select-all">{sale.shippingPostalCode}</dd></div>}
+            {sale.deliveryMethod === "kirim" && sale.shippingProvider && (
+              <div>
+                <dt className="text-xs text-neutral-400">Ongkir</dt>
+                <dd>
+                  {formatRupiah(sale.shippingCost)} · {sale.shippingZoneLabel ?? "-"}
+                  {sale.shippingBilledKg ? ` · ${sale.shippingBilledKg} kg` : ""}
+                  <span className="text-neutral-400">
+                    {" "}
+                    (via {SHIPPING_PROVIDER_LABELS[sale.shippingProvider] ?? sale.shippingProvider}
+                    {sale.shippingEtd ? `, estimasi ${sale.shippingEtd}` : ""})
+                  </span>
+                </dd>
+              </div>
+            )}
             {sale.notes && <div><dt className="text-xs text-neutral-400">Catatan pembeli</dt><dd className="whitespace-pre-line">{sale.notes}</dd></div>}
           </dl>
         </section>

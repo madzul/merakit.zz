@@ -206,7 +206,7 @@ export function renderWhatsApp(message: BuiltMessage, sale: SaleSnapshot, ctx: T
     : [
         `Halo ${sale.customerName}!`,
         message.headline,
-        `Kode pesanan: *${sale.code}*\n${itemsText(sale)}${sale.shippingCost > 0 ? `\nOngkir${sale.shippingBilledKg ? ` (${sale.shippingBilledKg} kg)` : ""}: ${formatRupiah(sale.shippingCost)}` : ""}\nTotal: ${formatRupiah(sale.totalAmount)}`,
+        `Kode pesanan: *${sale.code}*\n${itemsText(sale)}${sale.shippingCost > 0 ? `\nOngkir${shippingDetail(sale.shippingZoneLabel, sale.shippingBilledKg)}: ${formatRupiah(sale.shippingCost)}` : ""}\nTotal: ${formatRupiah(sale.totalAmount)}`,
         ...message.body,
         ctx.trackingUrl ? `Pantau pesanan:\n${ctx.trackingUrl}` : "",
         "Salam hangat,\nKomunitas Rajut Inklusif MERAKIT",

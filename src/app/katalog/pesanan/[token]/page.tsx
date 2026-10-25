@@ -196,6 +196,13 @@ export default async function StatusPesananPage({ params, searchParams }: Status
         </dl>
         <div className="mt-4 space-y-1 rounded-lg bg-neutral-50 px-3 py-2 text-sm text-neutral-600">
           <p className="font-medium text-neutral-700">{DELIVERY_METHOD_LABELS[sale.deliveryMethod]}</p>
+          {sale.deliveryMethod === "kirim" && (sale.shippingPostalCode || sale.shippingEtd) && (
+            <p className="text-neutral-500">
+              {[sale.shippingPostalCode && `Kode pos ${sale.shippingPostalCode}`, sale.shippingEtd && `Estimasi kirim ${sale.shippingEtd}`]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          )}
           {sale.address && <p className="whitespace-pre-line">{sale.address}</p>}
           {sale.notes && <p className="text-neutral-500">Catatan: {sale.notes}</p>}
         </div>

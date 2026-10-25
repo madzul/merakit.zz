@@ -6,7 +6,7 @@ import { Search, Store, Truck } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { PaymentStatusBadge, SaleStatusBadge } from "@/components/penjualan/sale-badges";
 import { downloadCsv } from "@/lib/csv";
-import { PAYMENT_STATUS_OPTIONS, SALE_STATUS_OPTIONS } from "@/lib/penjualan/constants";
+import { SHIPPING_PROVIDER_LABELS, PAYMENT_STATUS_OPTIONS, SALE_STATUS_OPTIONS } from "@/lib/penjualan/constants";
 import { formatRupiah } from "@/lib/utils";
 import type { OnlinePaymentStatus, OnlineSale, OnlineSaleStatus } from "@/lib/types";
 
@@ -40,7 +40,7 @@ export function SalesListClient({ sales }: { sales: OnlineSale[] }) {
   function handleExport() {
     downloadCsv(
       `penjualan-online-${new Date().toISOString().slice(0, 10)}.csv`,
-      ["Kode", "Tanggal", "Pembeli", "WhatsApp", "Email", "Pengiriman", "Alamat", "Produk", "Subtotal", "Berat Pesanan (g)", "Ongkir Ditagih (kg)", "Ongkir", "Total", "Status Bayar", "Status", "Kurir", "Resi"],
+      ["Kode", "Tanggal", "Pembeli", "WhatsApp", "Email", "Pengiriman", "Alamat", "Produk", "Subtotal", "Berat Pesanan (g)", "Ongkir Ditagih (kg)", "Wilayah/Layanan Ongkir", "Sumber Ongkir", "Kode Pos", "Ongkir", "Total", "Status Bayar", "Status", "Kurir", "Resi"],
       filtered.map((sale) => [
         sale.code,
         sale.createdAt.slice(0, 10),
@@ -53,6 +53,9 @@ export function SalesListClient({ sales }: { sales: OnlineSale[] }) {
         sale.subtotal,
         sale.shippingWeightGrams ?? "",
         sale.shippingBilledKg ?? "",
+        sale.shippingZoneLabel ?? "",
+        sale.shippingProvider ? (SHIPPING_PROVIDER_LABELS[sale.shippingProvider] ?? sale.shippingProvider) : "",
+        sale.shippingPostalCode ?? "",
         sale.shippingCost,
         sale.totalAmount,
         PAYMENT_STATUS_OPTIONS.find((o) => o.value === sale.paymentStatus)?.label ?? sale.paymentStatus,
