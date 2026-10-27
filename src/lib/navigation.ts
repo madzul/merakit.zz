@@ -9,6 +9,7 @@ import {
   BadgePercent,
   Layers,
   ShoppingCart,
+  BookOpen,
 } from "lucide-react";
 import type { NavItem } from "@/lib/types";
 
@@ -27,4 +28,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Keuangan", href: "/keuangan", icon: Wallet, adminOnly: true },
   { label: "Pemasaran", href: "/pemasaran", icon: Megaphone },
   { label: "Promo & Diskon", href: "/promo", icon: BadgePercent },
+  // Manual Penggunaan untuk semua pengguna login; isinya disaring per peran.
+  { label: "Manual Penggunaan", href: "/panduan", icon: BookOpen },
 ];
