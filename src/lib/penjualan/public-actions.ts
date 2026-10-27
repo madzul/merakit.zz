@@ -12,7 +12,13 @@ import {
   createOnlineSale,
   findOnlineSaleToken,
 } from "@/lib/supabase/repositories/online-sales-repository";
-import { detectShippingZone } from "@/lib/penjualan/shipping";
+import { quoteOrderShipping, type OrderShippingQuote } from "@/lib/penjualan/shipping-quote";
+import { normalizePostalCode } from "@/lib/penjualan/shipping-providers";
+
+type CheckoutLive = { provider: string; service: string | null; cost: number; etd: string | null; billedKg: number };
+
+const UNKNOWN_DESTINATION_MESSAGE =
+  "Ongkir belum bisa dihitung. Isi kode pos tujuan (5 digit), atau lengkapi alamat sampai nama kota/kabupaten dan provinsi.";
 import { MAX_CART_LINES, MAX_LINE_QUANTITY } from "@/lib/penjualan/constants";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -34,6 +40,8 @@ export interface CartProduct {
   price: number;
   imageUrl: string;
   inStock: boolean;
+  /** Berat per pcs (gram); null = belum diisi admin. */
+  weightGrams: number | null;
 }
 
 /**
@@ -55,6 +63,7 @@ export async function getCartProductsAction(ids: string[]): Promise<CartProduct[
       price: product.price,
       imageUrl: product.imageUrl,
       inStock: product.stock > 0,
+      weightGrams: product.weightGrams ?? null,
     }));
 }
 
@@ -64,6 +73,8 @@ export interface CheckoutFormInput {
   customerEmail: string;
   deliveryMethod: "kirim" | "ambil";
   address: string;
+  /** Kode pos tujuan (5 digit) untuk tarif live kurir; opsional. */
+  postalCode?: string;
   notes: string;
   items: { productId: string; quantity: number }[];
 }
@@ -85,11 +96,21 @@ export async function checkoutAction(input: CheckoutFormInput): Promise<{ error?
 
   const deliveryMethod = input.deliveryMethod === "ambil" ? "ambil" : "kirim";
   const address = (input.address ?? "").trim();
+  const rawPostal = (input.postalCode ?? "").trim();
+  if (rawPostal && !normalizePostalCode(rawPostal)) return { error: "Kode pos harus 5 digit angka." };
   let shippingZone: string | null = null;
+  let postalCode: string | null = deliveryMethod === "kirim" ? normalizePostalCode(rawPostal) : null;
+  let liveShipping: CheckoutLive | null = null;
   if (deliveryMethod === "kirim") {
-    const match = detectShippingZone(address);
-    if (!match) return { error: "Kota/kabupaten pada alamat belum dikenali. Lengkapi sampai nama kota dan provinsi." };
-    shippingZone = match.zone;
+    // Seperti IOM: tarif live kurir dari kode pos, cadangan tabel zona dari alamat.
+    const quote = await quoteOrderShipping({ address, postalCode }, items);
+    if (!quote) return { error: UNKNOWN_DESTINATION_MESSAGE };
+    postalCode = quote.postalCode;
+    if (quote.provider === "table") {
+      shippingZone = quote.zone;
+    } else {
+      liveShipping = { provider: quote.provider, service: quote.service, cost: quote.cost, etd: quote.etd, billedKg: quote.billedKg };
+    }
   }
 
   try {
@@ -102,6 +123,8 @@ export async function checkoutAction(input: CheckoutFormInput): Promise<{ error?
       shippingZone,
       notes: (input.notes ?? "").trim() || null,
       items,
+      postalCode,
+      liveShipping,
     });
     revalidatePath("/penjualan");
     revalidatePath("/dashboard/pesanan");
@@ -181,5 +204,29 @@ export async function verifyOnlinePaymentAction(token: string): Promise<{ paid: 
     return { paid: Boolean(result?.paid) };
   } catch {
     return { paid: false };
+  }
+}
+
+/**
+ * Pratinjau ongkir di keranjang (dipakai bila tarif live kurir aktif):
+ * kode pos → tarif kurir termurah; selain itu tabel zona dari alamat.
+ * Nilai final tetap dihitung ulang saat pesanan dibuat.
+ */
+export async function quoteShippingAction(input: {
+  address: string;
+  postalCode?: string;
+  items: { productId: string; quantity: number }[];
+}): Promise<{ quote: OrderShippingQuote | null }> {
+  const items = (Array.isArray(input.items) ? input.items : [])
+    .filter((item) => UUID_PATTERN.test(item.productId) && Number.isInteger(item.quantity) && item.quantity > 0)
+    .slice(0, MAX_CART_LINES)
+    .map((item) => ({ productId: item.productId, quantity: Math.min(item.quantity, MAX_LINE_QUANTITY) }));
+  const address = String(input.address ?? "").slice(0, 500);
+  const postalCode = normalizePostalCode(input.postalCode);
+  if (items.length === 0 || (!address.trim() && !postalCode)) return { quote: null };
+  try {
+    return { quote: await quoteOrderShipping({ address, postalCode }, items) };
+  } catch {
+    return { quote: null };
   }
 }

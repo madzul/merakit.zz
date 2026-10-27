@@ -31,6 +31,8 @@ interface SaleForPayment {
   shipping_cost: number;
   shipping_zone: string | null;
   shipping_zone_label: string | null;
+  shipping_billed_kg?: number | null;
+  shipping_provider?: string | null;
   total_amount: number;
   payment_status: string;
   status: string;
@@ -113,10 +115,13 @@ export async function startOnlinePayment(publicToken: string): Promise<StartPaym
   }));
   if (Number(sale.shipping_cost) > 0) {
     items.push({
-      id: `ongkir-${sale.shipping_zone ?? "flat"}`,
+      id: `ongkir-${sale.shipping_zone ?? sale.shipping_provider ?? "flat"}`,
       price: Math.round(Number(sale.shipping_cost)),
       quantity: 1,
-      name: `Ongkir ${sale.shipping_zone_label ?? ""}`.trim(),
+      // Seperti IOM: "Ongkir <wilayah> N kg".
+      name: [`Ongkir ${sale.shipping_zone_label ?? ""}`.trim(), sale.shipping_billed_kg ? `${sale.shipping_billed_kg} kg` : ""]
+        .filter(Boolean)
+        .join(" "),
     });
   }
   const grossAmount = Math.round(Number(sale.total_amount));

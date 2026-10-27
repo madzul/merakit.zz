@@ -13,6 +13,7 @@ import { getPaymentInfo, hasPaymentInfo } from "@/lib/penjualan/config";
 import { DELIVERY_METHOD_LABELS, PAYMENT_STATUS_BADGE_STYLES, PAYMENT_STATUS_LABELS } from "@/lib/penjualan/constants";
 import { getPublicOnlineSale } from "@/lib/supabase/repositories/online-sales-repository";
 import { cn, formatRupiah } from "@/lib/utils";
+import { shippingDetail } from "@/lib/penjualan/shipping";
 
 export const metadata: Metadata = {
   title: "Status Pesanan — Katalog MERAKIT",
@@ -185,7 +186,7 @@ export default async function StatusPesananPage({ params, searchParams }: Status
             <dd>{formatRupiah(sale.subtotal)}</dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-neutral-500">Ongkir{sale.shippingZoneLabel ? ` (${sale.shippingZoneLabel})` : ""}</dt>
+            <dt className="text-neutral-500">Ongkir{shippingDetail(sale.shippingZoneLabel, sale.shippingBilledKg)}</dt>
             <dd>{sale.shippingCost === 0 ? "Gratis" : formatRupiah(sale.shippingCost)}</dd>
           </div>
           <div className="flex justify-between gap-4 text-base font-semibold">
@@ -195,6 +196,13 @@ export default async function StatusPesananPage({ params, searchParams }: Status
         </dl>
         <div className="mt-4 space-y-1 rounded-lg bg-neutral-50 px-3 py-2 text-sm text-neutral-600">
           <p className="font-medium text-neutral-700">{DELIVERY_METHOD_LABELS[sale.deliveryMethod]}</p>
+          {sale.deliveryMethod === "kirim" && (sale.shippingPostalCode || sale.shippingEtd) && (
+            <p className="text-neutral-500">
+              {[sale.shippingPostalCode && `Kode pos ${sale.shippingPostalCode}`, sale.shippingEtd && `Estimasi kirim ${sale.shippingEtd}`]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          )}
           {sale.address && <p className="whitespace-pre-line">{sale.address}</p>}
           {sale.notes && <p className="text-neutral-500">Catatan: {sale.notes}</p>}
         </div>

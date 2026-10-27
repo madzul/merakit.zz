@@ -9,9 +9,11 @@
  * 2. Tempat yang masuk daftar langsung memakai wilayah tarifnya.
  * 3. Tempat di luar daftar memakai wilayah TERDEKAT (jarak garis lurus).
  *
- * Besaran tarif TIDAK ada di sini — disimpan di tabel shipping_zones dan bisa
- * diubah admin. File ini hanya memetakan alamat → kode wilayah. Aman dipakai
- * di browser (pratinjau ongkir) maupun server (perhitungan final).
+ * Besaran tarif TIDAK ada di sini — disimpan di tabel shipping_zones (tarif
+ * 1 kg pertama + tarif per kg berikutnya) dan bisa diubah admin. File ini
+ * memetakan alamat → kode wilayah dan menghitung kg yang ditagih dari total
+ * berat. Aman dipakai di browser (pratinjau ongkir) maupun server; angka
+ * final dihitung database (create_online_sale).
  */
 
 export type ShippingZoneId =
@@ -532,4 +534,43 @@ export function detectShippingZone(address: string): ShippingMatch | null {
   }
 
   return { zone, matchedPlace: city ? `${city.name}, ${province.name}` : province.name, byNearest };
+}
+
+// ---------- Ongkir berdasarkan berat (pembaruan IOM-ITB) ----------
+
+/** Berat produk yang belum diisi admin (gram per pcs). */
+export const DEFAULT_ITEM_WEIGHT_GRAMS = 500;
+/** Sisa berat di atas kg bulat yang masih dibulatkan ke bawah. */
+export const WEIGHT_TOLERANCE_GRAMS = 300;
+
+/**
+ * Kg yang ditagih dari total berat (gram) — aturan umum kurir reguler:
+ * dibulatkan ke atas bila sisa > 300 g, minimal 1 kg. Sama dengan fungsi
+ * database public.billable_kg.
+ */
+export function billableKg(weightGrams: number | null | undefined): number {
+  const grams = Math.max(0, Math.round(Number(weightGrams) || 0));
+  const whole = Math.floor(grams / 1000);
+  return Math.max(1, whole + (grams % 1000 > WEIGHT_TOLERANCE_GRAMS ? 1 : 0));
+}
+
+/** Ongkir = tarif 1 kg pertama + (kg ditagih − 1) × tarif per kg berikutnya. */
+export function shippingCostFor(zone: { cost: number; extraPerKg: number }, weightGrams: number) {
+  const billedKg = billableKg(weightGrams);
+  return { billedKg, cost: zone.cost + (billedKg - 1) * zone.extraPerKg };
+}
+
+export function itemWeight(weightGrams: number | null | undefined): number {
+  return weightGrams != null ? weightGrams : DEFAULT_ITEM_WEIGHT_GRAMS;
+}
+
+/** 1500 → "1,5 kg", 250 → "0,25 kg". */
+export function formatKg(grams: number): string {
+  return `${(grams / 1000).toLocaleString("id-ID", { maximumFractionDigits: 2 })} kg`;
+}
+
+/** Keterangan baris ongkir: " (Bandung Raya, 2 kg)", atau "" bila tidak ada data. */
+export function shippingDetail(zoneLabel: string | null | undefined, billedKg: number | null | undefined): string {
+  const parts = [zoneLabel, billedKg ? `${billedKg} kg` : null].filter(Boolean);
+  return parts.length ? ` (${parts.join(", ")})` : "";
 }

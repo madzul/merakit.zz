@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json, Tables } from "@/lib/supabase/database.types";
 import type {
   OnlinePaymentStatus,
@@ -36,6 +37,12 @@ function mapSale(row: SaleRow): OnlineSale {
     address: row.address,
     shippingZoneLabel: row.shipping_zone_label,
     shippingCost: Number(row.shipping_cost),
+    shippingWeightGrams: row.shipping_weight_grams ?? null,
+    shippingBilledKg: row.shipping_billed_kg ?? null,
+    shippingProvider: row.shipping_provider ?? null,
+    shippingService: row.shipping_service ?? null,
+    shippingPostalCode: row.shipping_postal_code ?? null,
+    shippingEtd: row.shipping_etd ?? null,
     subtotal: Number(row.subtotal),
     totalAmount: Number(row.total_amount),
     notes: row.notes,
@@ -149,14 +156,16 @@ export async function getShippingZones(activeOnly = false): Promise<ShippingZone
     id: row.id,
     label: row.label,
     cost: Number(row.cost),
+    // Sebelum migrasi ongkir berat: tarif per kg berikutnya = tarif 1 kg pertama.
+    extraPerKg: Number(row.extra_per_kg ?? row.cost),
     isActive: row.is_active,
     sortOrder: row.sort_order,
   }));
 }
 
-export async function updateShippingZone(id: string, cost: number, isActive: boolean): Promise<void> {
+export async function updateShippingZone(id: string, cost: number, extraPerKg: number, isActive: boolean): Promise<void> {
   const supabase = await createClient();
-  const { error } = await supabase.from("shipping_zones").update({ cost, is_active: isActive }).eq("id", id);
+  const { error } = await supabase.from("shipping_zones").update({ cost, extra_per_kg: extraPerKg, is_active: isActive }).eq("id", id);
   if (error) throw error;
 }
 
@@ -171,11 +180,17 @@ export interface CheckoutInput {
   shippingZone: string | null;
   notes: string | null;
   items: { productId: string; quantity: number }[];
+  postalCode?: string | null;
+  /** Tarif live kurir dari server (RajaOngkir/AgenWebsite). */
+  liveShipping?: { provider: string; service: string | null; cost: number; etd: string | null; billedKg: number } | null;
 }
 
 /** Melempar Error berisi pesan dari database (sudah berbahasa Indonesia) bila ditolak. */
 export async function createOnlineSale(input: CheckoutInput): Promise<{ code: string; publicToken: string }> {
-  const supabase = await createClient();
+  // Tarif live hanya diterima database dari service role (lihat migration-ongkir-live.sql).
+  const admin = input.liveShipping ? createAdminClient() : null;
+  if (input.liveShipping && !admin) throw new Error("SUPABASE_SERVICE_ROLE_KEY belum diisi");
+  const supabase = admin ?? (await createClient());
   const { data, error } = await supabase.rpc("create_online_sale", {
     p_customer_name: input.customerName,
     p_customer_phone: input.customerPhone,
@@ -185,6 +200,17 @@ export async function createOnlineSale(input: CheckoutInput): Promise<{ code: st
     p_shipping_zone: input.shippingZone,
     p_notes: input.notes,
     p_items: input.items.map((item) => ({ product_id: item.productId, quantity: item.quantity })) as unknown as Json,
+    // Dikirim hanya bila ada, agar tetap jalan sebelum migration-ongkir-live.sql.
+    ...(input.postalCode && { p_postal_code: input.postalCode }),
+    ...(input.liveShipping && {
+      p_live_shipping: {
+        provider: input.liveShipping.provider,
+        service: input.liveShipping.service,
+        cost: input.liveShipping.cost,
+        etd: input.liveShipping.etd,
+        billed_kg: input.liveShipping.billedKg,
+      } as unknown as Json,
+    }),
   });
   if (error) throw error;
   const row = Array.isArray(data) ? data[0] : null;
@@ -201,6 +227,11 @@ interface PublicSaleJson {
   address: string | null;
   shipping_zone_label: string | null;
   shipping_cost: number;
+  shipping_weight_grams?: number | null;
+  shipping_billed_kg?: number | null;
+  shipping_service?: string | null;
+  shipping_postal_code?: string | null;
+  shipping_etd?: string | null;
   subtotal: number;
   total_amount: number;
   notes: string | null;
@@ -240,6 +271,11 @@ export async function getPublicOnlineSale(token: string): Promise<PublicOnlineSa
     address: row.address,
     shippingZoneLabel: row.shipping_zone_label,
     shippingCost: Number(row.shipping_cost),
+    shippingWeightGrams: row.shipping_weight_grams ?? null,
+    shippingBilledKg: row.shipping_billed_kg ?? null,
+    shippingService: row.shipping_service ?? null,
+    shippingPostalCode: row.shipping_postal_code ?? null,
+    shippingEtd: row.shipping_etd ?? null,
     subtotal: Number(row.subtotal),
     totalAmount: Number(row.total_amount),
     notes: row.notes,

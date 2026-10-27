@@ -14,6 +14,8 @@ export interface CartItem {
   price: number;
   imageUrl: string;
   quantity: number;
+  /** Berat per pcs (gram) untuk pratinjau ongkir; null = belum diisi (500 g). */
+  weightGrams?: number | null;
 }
 
 const STORAGE_KEY = "merakit_cart_v1";
@@ -86,14 +88,14 @@ export function removeFromCart(productId: string) {
 }
 
 /** Ganti data tampilan (nama/harga/foto) dengan data terbaru & buang produk yang tidak tersedia. */
-export function refreshCart(fresh: { id: string; name: string; price: number; imageUrl: string }[]) {
+export function refreshCart(fresh: { id: string; name: string; price: number; imageUrl: string; weightGrams: number | null }[]) {
   const byId = new Map(fresh.map((product) => [product.id, product]));
   write(
     read()
       .filter((line) => byId.has(line.productId))
       .map((line) => {
         const product = byId.get(line.productId)!;
-        return { ...line, name: product.name, price: product.price, imageUrl: product.imageUrl };
+        return { ...line, name: product.name, price: product.price, imageUrl: product.imageUrl, weightGrams: product.weightGrams };
       })
   );
 }

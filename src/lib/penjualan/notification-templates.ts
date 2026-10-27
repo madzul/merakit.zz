@@ -1,5 +1,6 @@
 import "server-only";
 import { formatRupiah } from "@/lib/utils";
+import { shippingDetail } from "@/lib/penjualan/shipping";
 import type { DeliveryMethod, OnlineSaleStatus } from "@/lib/types";
 
 /**
@@ -22,6 +23,8 @@ export interface SaleSnapshot {
   address: string | null;
   shippingCost: number;
   shippingZoneLabel: string | null;
+  /** Kg ongkir yang ditagih (null untuk pesanan lama / ambil sendiri). */
+  shippingBilledKg: number | null;
   totalAmount: number;
   notes: string | null;
   paymentNote: string | null;
@@ -203,7 +206,7 @@ export function renderWhatsApp(message: BuiltMessage, sale: SaleSnapshot, ctx: T
     : [
         `Halo ${sale.customerName}!`,
         message.headline,
-        `Kode pesanan: *${sale.code}*\n${itemsText(sale)}${sale.shippingCost > 0 ? `\nOngkir: ${formatRupiah(sale.shippingCost)}` : ""}\nTotal: ${formatRupiah(sale.totalAmount)}`,
+        `Kode pesanan: *${sale.code}*\n${itemsText(sale)}${sale.shippingCost > 0 ? `\nOngkir${shippingDetail(sale.shippingZoneLabel, sale.shippingBilledKg)}: ${formatRupiah(sale.shippingCost)}` : ""}\nTotal: ${formatRupiah(sale.totalAmount)}`,
         ...message.body,
         ctx.trackingUrl ? `Pantau pesanan:\n${ctx.trackingUrl}` : "",
         "Salam hangat,\nKomunitas Rajut Inklusif MERAKIT",
@@ -229,7 +232,7 @@ export function renderEmailHtml(message: BuiltMessage, sale: SaleSnapshot, ctx: 
     .join("");
   const shippingRow =
     sale.shippingCost > 0
-      ? `<tr><td style="padding:8px 0;color:#6b7280;">Ongkir${sale.shippingZoneLabel ? ` (${escapeHtml(sale.shippingZoneLabel)})` : ""}</td><td style="padding:8px 0;text-align:right;">${formatRupiah(sale.shippingCost)}</td></tr>`
+      ? `<tr><td style="padding:8px 0;color:#6b7280;">Ongkir${escapeHtml(shippingDetail(sale.shippingZoneLabel, sale.shippingBilledKg))}</td><td style="padding:8px 0;text-align:right;">${formatRupiah(sale.shippingCost)}</td></tr>`
       : "";
   const cta = ctx.trackingUrl && !forAdmin
     ? `<p style="margin:24px 0 8px;"><a href="${escapeHtml(ctx.trackingUrl)}" style="display:inline-block;background:#285f55;color:#fff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:700;">Lihat Status Pesanan</a></p>

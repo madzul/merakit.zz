@@ -13,6 +13,8 @@ function mapProduct(row: Tables<"products">): Product {
     imageUrl: row.image_url ?? "",
     isActive: row.is_active,
     createdAt: row.created_at.slice(0, 10),
+    // undefined bila kolom belum ada (migrasi ongkir berat belum dijalankan).
+    weightGrams: row.weight_grams,
   };
 }
 
@@ -59,6 +61,8 @@ export async function createProduct(input: Omit<Product, "id" | "createdAt">): P
       stock: input.stock,
       image_url: input.imageUrl,
       is_active: input.isActive,
+      // Kolom hanya ditulis bila diisi, supaya form tetap jalan sebelum migrasi.
+      ...(input.weightGrams != null && { weight_grams: input.weightGrams }),
     })
     .select()
     .single();
@@ -66,7 +70,12 @@ export async function createProduct(input: Omit<Product, "id" | "createdAt">): P
   return mapProduct(data);
 }
 
-export async function updateProduct(id: string, input: Omit<Product, "id" | "createdAt" | "stock">): Promise<Product> {
+/** `writeWeight`: false bila kolom weight_grams belum ada dan berat dikosongkan. */
+export async function updateProduct(
+  id: string,
+  input: Omit<Product, "id" | "createdAt" | "stock">,
+  writeWeight = true
+): Promise<Product> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("products")
@@ -79,6 +88,7 @@ export async function updateProduct(id: string, input: Omit<Product, "id" | "cre
       // (produksi selesai, pesanan selesai, penyesuaian). Ubah lewat setProductStock.
       image_url: input.imageUrl,
       is_active: input.isActive,
+      ...(writeWeight && { weight_grams: input.weightGrams ?? null }),
     })
     .eq("id", id)
     .select()

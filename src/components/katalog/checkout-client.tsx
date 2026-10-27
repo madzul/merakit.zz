@@ -14,8 +14,9 @@ import {
   setCartQuantity,
   useCart,
 } from "@/lib/penjualan/cart-store";
-import { checkoutAction, getCartProductsAction } from "@/lib/penjualan/public-actions";
-import { detectShippingZone } from "@/lib/penjualan/shipping";
+import { checkoutAction, getCartProductsAction, quoteShippingAction } from "@/lib/penjualan/public-actions";
+import type { OrderShippingQuote } from "@/lib/penjualan/shipping-quote";
+import { detectShippingZone, formatKg, itemWeight, shippingCostFor, WEIGHT_TOLERANCE_GRAMS } from "@/lib/penjualan/shipping";
 import { MAX_LINE_QUANTITY } from "@/lib/penjualan/constants";
 import { cn, formatRupiah } from "@/lib/utils";
 import type { ShippingZone } from "@/lib/types";
@@ -26,6 +27,21 @@ interface CheckoutClientProps {
   onlinePaymentEnabled?: boolean;
   /** Notifikasi otomatis aktif → beri tahu pembeli konfirmasi dikirim ke WA/email. */
   notificationsEnabled?: boolean;
+  /** Tarif live kurir (RajaOngkir/AgenWebsite) aktif → ongkir dihitung server dari kode pos. */
+  liveShippingEnabled?: boolean;
+}
+
+interface QuoteView {
+  live: boolean;
+  cost: number;
+  billedKg: number;
+  matchedPlace: string;
+  /** Wilayah tarif (tabel) atau layanan kurir (live). */
+  label: string | null;
+  etd: string | null;
+  byNearest: boolean;
+  baseCost: number | null;
+  extraPerKg: number | null;
 }
 
 const noopSubscribe = () => () => {};
@@ -34,7 +50,12 @@ const inputClass =
   "mt-1 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-800 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/40";
 
 /** Keranjang + form pembeli + ringkasan ongkir → buat penjualan online. */
-export function CheckoutClient({ zones, onlinePaymentEnabled = false, notificationsEnabled = false }: CheckoutClientProps) {
+export function CheckoutClient({
+  zones,
+  onlinePaymentEnabled = false,
+  notificationsEnabled = false,
+  liveShippingEnabled = false,
+}: CheckoutClientProps) {
   const router = useRouter();
   const items = useCart();
   // false saat render server & hidrasi awal (keranjang di localStorage belum terbaca).
@@ -48,6 +69,7 @@ export function CheckoutClient({ zones, onlinePaymentEnabled = false, notificati
     customerPhone: "",
     customerEmail: "",
     deliveryMethod: "kirim" as "kirim" | "ambil",
+    postalCode: "",
     address: "",
     notes: "",
   });
@@ -81,7 +103,62 @@ export function CheckoutClient({ zones, onlinePaymentEnabled = false, notificati
   const zoneById = useMemo(() => new Map(zones.map((zone) => [zone.id, zone])), [zones]);
   const shippingMatch = form.deliveryMethod === "kirim" && form.address.trim().length >= 5 ? detectShippingZone(form.address) : null;
   const shippingZone = shippingMatch ? (zoneById.get(shippingMatch.zone) ?? null) : null;
-  const shippingCost = form.deliveryMethod === "ambil" ? 0 : (shippingZone?.cost ?? null);
+  // Ongkir berdasarkan total berat (pembaruan IOM-ITB); angka final dihitung database.
+  const totalWeight = items.reduce((sum, item) => sum + itemWeight(item.weightGrams) * item.quantity, 0);
+  const shippingQuote = shippingZone ? shippingCostFor(shippingZone, totalWeight) : null;
+  const tableView: QuoteView | null =
+    shippingMatch && shippingZone && shippingQuote
+      ? {
+          live: false,
+          cost: shippingQuote.cost,
+          billedKg: shippingQuote.billedKg,
+          matchedPlace: shippingMatch.matchedPlace,
+          label: shippingZone.label,
+          etd: null,
+          byNearest: shippingMatch.byNearest,
+          baseCost: shippingZone.cost,
+          extraPerKg: shippingZone.extraPerKg,
+        }
+      : null;
+
+  // Tarif live (pembaruan IOM-ITB): server menghitung dari kode pos tujuan,
+  // cadangan tabel zona — tunggu pembeli berhenti mengetik (600 ms).
+  const validPostal = /^\d{5}$/.test(form.postalCode) ? form.postalCode : "";
+  const [serverQuote, setServerQuote] = useState<{ key: string; quote: OrderShippingQuote | null } | null>(null);
+  const quoteKey =
+    liveShippingEnabled && form.deliveryMethod === "kirim" && items.length > 0 && (validPostal || form.address.trim().length >= 5)
+      ? JSON.stringify([form.address.trim(), validPostal, items.map((item) => [item.productId, item.quantity])])
+      : null;
+  useEffect(() => {
+    if (!quoteKey) return;
+    const [address, postalCode, lines] = JSON.parse(quoteKey) as [string, string, [string, number][]];
+    const timer = window.setTimeout(async () => {
+      const result = await quoteShippingAction({
+        address,
+        postalCode,
+        items: lines.map(([productId, quantity]) => ({ productId, quantity })),
+      }).catch(() => ({ quote: null }));
+      setServerQuote({ key: quoteKey, quote: result.quote });
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [quoteKey]);
+  const quoteLoading = quoteKey !== null && serverQuote?.key !== quoteKey;
+  const activeServerQuote = quoteKey !== null && serverQuote?.key === quoteKey ? serverQuote.quote : null;
+  const serverView: QuoteView | null = activeServerQuote
+    ? {
+        live: activeServerQuote.provider !== "table",
+        cost: activeServerQuote.cost,
+        billedKg: activeServerQuote.billedKg,
+        matchedPlace: activeServerQuote.matchedPlace,
+        label: activeServerQuote.service ?? activeServerQuote.zoneLabel,
+        etd: activeServerQuote.etd,
+        byNearest: activeServerQuote.byNearest,
+        baseCost: activeServerQuote.baseCost,
+        extraPerKg: activeServerQuote.extraPerKg,
+      }
+    : null;
+  const quoteView = liveShippingEnabled ? serverView : tableView;
+  const shippingCost = form.deliveryMethod === "ambil" ? 0 : (quoteView?.cost ?? null);
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
@@ -91,8 +168,16 @@ export function CheckoutClient({ zones, onlinePaymentEnabled = false, notificati
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
-    if (form.deliveryMethod === "kirim" && !shippingZone) {
-      setError("Lengkapi alamat sampai nama kota/kabupaten dan provinsi agar ongkir bisa dihitung.");
+    if (form.deliveryMethod === "kirim" && liveShippingEnabled && !validPostal) {
+      setError("Isi kode pos tujuan (5 digit) agar ongkir kurir bisa dihitung.");
+      return;
+    }
+    if (form.deliveryMethod === "kirim" && !quoteView) {
+      setError(
+        quoteLoading
+          ? "Ongkir sedang dihitung, tunggu sebentar lalu coba lagi."
+          : "Ongkir belum bisa dihitung. Periksa kode pos, atau lengkapi alamat sampai nama kota/kabupaten dan provinsi."
+      );
       return;
     }
     setSubmitting(true);
@@ -262,37 +347,79 @@ export function CheckoutClient({ zones, onlinePaymentEnabled = false, notificati
                   className={inputClass}
                 />
               </label>
-              {form.address.trim().length >= 5 &&
-                (shippingMatch && shippingZone ? (
+              <label className="mt-3 block text-sm font-medium text-neutral-700">
+                Kode pos {liveShippingEnabled ? <span className="text-danger-600">*</span> : <span className="font-normal text-neutral-400">(disarankan)</span>}
+                <input
+                  required={liveShippingEnabled}
+                  inputMode="numeric"
+                  autoComplete="postal-code"
+                  maxLength={5}
+                  placeholder="mis. 40275"
+                  value={form.postalCode}
+                  onChange={(e) => update("postalCode", e.target.value.replace(/\D/g, "").slice(0, 5))}
+                  className={cn(inputClass, "sm:w-40")}
+                />
+              </label>
+              <p className="mt-1 text-xs text-neutral-400">
+                Ongkir dihitung dari {liveShippingEnabled ? "kode pos tujuan" : "kota/kabupaten pada alamat"} dan total berat pesanan (±
+                {formatKg(totalWeight)}).
+              </p>
+              {(form.address.trim().length >= 5 || validPostal) &&
+                (quoteView ? (
                   <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-success-50 px-3 py-2 text-sm text-neutral-700">
                     <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-success-600" aria-hidden="true" />
                     <span>
-                      Ongkir ke <strong>{shippingMatch.matchedPlace}</strong>: <strong>{formatRupiah(shippingZone.cost)}</strong>{" "}
+                      Ongkir ke <strong>{quoteView.matchedPlace}</strong>: <strong>{formatRupiah(quoteView.cost)}</strong>{" "}
                       <span className="text-neutral-500">
-                        (tarif {shippingZone.label}
-                        {shippingMatch.byNearest ? ", wilayah tarif terdekat" : ""})
+                        {quoteView.live ? (
+                          <>
+                            ({quoteView.label}
+                            {quoteView.etd ? `, estimasi ${quoteView.etd}` : ""}; ditagih {quoteView.billedKg} kg)
+                          </>
+                        ) : (
+                          <>
+                            (tarif {quoteView.label}
+                            {quoteView.byNearest ? ", wilayah tarif terdekat" : ""}; ditagih {quoteView.billedKg} kg
+                            {quoteView.billedKg > 1 && quoteView.baseCost !== null && quoteView.extraPerKg !== null
+                              ? ` = ${formatRupiah(quoteView.baseCost)} + ${quoteView.billedKg - 1} × ${formatRupiah(quoteView.extraPerKg)}`
+                              : ""}
+                            )
+                          </>
+                        )}
                       </span>
                     </span>
                   </p>
+                ) : liveShippingEnabled && quoteLoading ? (
+                  <p className="mt-2 flex items-center gap-1.5 text-sm text-neutral-500">
+                    <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    Menghitung ongkir…
+                  </p>
                 ) : (
                   <p className="mt-2 rounded-lg bg-warning-50 px-3 py-2 text-sm text-warning-600">
-                    {shippingMatch
+                    {!liveShippingEnabled && shippingMatch
                       ? "Pengiriman ke wilayah ini sedang tidak tersedia. Hubungi kami via WhatsApp atau pilih ambil sendiri."
-                      : "Kota/kabupaten belum dikenali. Lengkapi alamat sampai nama kota/kabupaten dan provinsi."}
+                      : "Ongkir belum bisa dihitung. Periksa kode pos, atau lengkapi alamat sampai nama kota/kabupaten dan provinsi."}
                   </p>
                 ))}
-              {zones.length > 0 && (
+              {zones.length > 0 && !quoteView?.live && (
                 <details className="mt-2 text-sm text-neutral-600">
                   <summary className="cursor-pointer select-none text-primary-700">Lihat tarif ongkir</summary>
                   <ul className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
                     {zones.map((zone) => (
                       <li key={zone.id} className="flex justify-between gap-4">
                         <span>{zone.label}</span>
-                        <span className="font-medium">{formatRupiah(zone.cost)}</span>
+                        <span className="font-medium">
+                          {formatRupiah(zone.cost)}
+                          <span className="font-normal text-neutral-400"> + {formatRupiah(zone.extraPerKg)}/kg</span>
+                        </span>
                       </li>
                     ))}
                   </ul>
-                  <p className="mt-1 text-xs text-neutral-400">Alamat di luar daftar memakai tarif wilayah terdekat.</p>
+                  <p className="mt-1 text-xs text-neutral-400">
+                    Tarif untuk 1 kg pertama, ditambah tarif per kg berikutnya. Berat dibulatkan ke atas bila sisanya lebih
+                    dari {formatKg(WEIGHT_TOLERANCE_GRAMS)}. Alamat di luar daftar memakai tarif
+                    wilayah terdekat.
+                  </p>
                 </details>
               )}
             </div>
@@ -346,7 +473,10 @@ export function CheckoutClient({ zones, onlinePaymentEnabled = false, notificati
             <dd className="font-medium text-neutral-800">{formatRupiah(subtotal)}</dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-neutral-500">Ongkir</dt>
+            <dt className="text-neutral-500">
+              Ongkir
+              {form.deliveryMethod === "kirim" && quoteView ? ` (${quoteView.billedKg} kg)` : ""}
+            </dt>
             <dd className="font-medium text-neutral-800">
               {shippingCost === null ? <span className="text-neutral-400">lengkapi alamat</span> : shippingCost === 0 ? "Gratis" : formatRupiah(shippingCost)}
             </dd>

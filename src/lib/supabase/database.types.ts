@@ -89,6 +89,8 @@ export interface Database {
           stock: number;
           image_url: string | null;
           is_active: boolean;
+          // migration-ongkir-berat.sql
+          weight_grams: number | null;
           created_at: string;
         };
         Insert: {
@@ -100,6 +102,7 @@ export interface Database {
           stock?: number;
           image_url?: string | null;
           is_active?: boolean;
+          weight_grams?: number | null;
         };
         Update: Partial<Database["public"]["Tables"]["products"]["Insert"]>;
         Relationships: [];
@@ -241,6 +244,14 @@ export interface Database {
           midtrans_transaction_id: string | null;
           midtrans_payment_type: string | null;
           midtrans_status: string | null;
+          // migration-ongkir-berat.sql
+          shipping_weight_grams: number | null;
+          shipping_billed_kg: number | null;
+          // migration-ongkir-live.sql
+          shipping_provider: string | null;
+          shipping_service: string | null;
+          shipping_postal_code: string | null;
+          shipping_etd: string | null;
         };
         // Baris baru hanya lewat fungsi create_online_sale().
         Insert: never;
@@ -320,12 +331,14 @@ export interface Database {
           id: string;
           label: string;
           cost: number;
+          extra_per_kg: number;
           is_active: boolean;
           sort_order: number;
         };
         Insert: never;
         Update: {
           cost?: number;
+          extra_per_kg?: number;
           is_active?: boolean;
         };
         Relationships: [];
@@ -581,6 +594,10 @@ export interface Database {
           p_shipping_zone: string | null;
           p_notes: string | null;
           p_items: Json;
+          // migration-ongkir-live.sql
+          p_postal_code?: string | null;
+          /** Hanya diterima dari service role. */
+          p_live_shipping?: Json | null;
         };
         Returns: { code: string; public_token: string }[];
       };

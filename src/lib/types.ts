@@ -200,6 +200,12 @@ export interface Product {
   isActive: boolean;
   /** Tanggal dibuat, format ISO ("YYYY-MM-DD"). */
   createdAt: string;
+  /**
+   * Berat per pcs termasuk kemasan (gram) untuk ongkir; null = belum diisi
+   * (dianggap 500 g). undefined = kolom belum ada (migration-ongkir-berat.sql
+   * belum dijalankan).
+   */
+  weightGrams?: number | null;
 }
 
 /**
@@ -371,6 +377,15 @@ export interface OnlineSale {
   address: string | null;
   shippingZoneLabel: string | null;
   shippingCost: number;
+  /** Total berat pesanan (gram) & kg yang ditagih untuk ongkir (null = pesanan lama/ambil sendiri). */
+  shippingWeightGrams: number | null;
+  shippingBilledKg: number | null;
+  /** Sumber tarif: "rajaongkir" | "agenwebsite" | "table" (null = pesanan lama/ambil sendiri). */
+  shippingProvider: string | null;
+  /** Layanan kurir dari tarif live, mis. "J&T Express EZ". */
+  shippingService: string | null;
+  shippingPostalCode: string | null;
+  shippingEtd: string | null;
   subtotal: number;
   totalAmount: number;
   notes: string | null;
@@ -409,6 +424,11 @@ export interface PublicOnlineSale {
   address: string | null;
   shippingZoneLabel: string | null;
   shippingCost: number;
+  shippingWeightGrams: number | null;
+  shippingBilledKg: number | null;
+  shippingService: string | null;
+  shippingPostalCode: string | null;
+  shippingEtd: string | null;
   subtotal: number;
   totalAmount: number;
   notes: string | null;
@@ -429,7 +449,10 @@ export interface PublicOnlineSale {
 export interface ShippingZone {
   id: string;
   label: string;
+  /** Tarif 1 kg pertama. */
   cost: number;
+  /** Tarif tiap kg berikutnya. */
+  extraPerKg: number;
   isActive: boolean;
   sortOrder: number;
 }

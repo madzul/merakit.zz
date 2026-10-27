@@ -23,6 +23,9 @@ function validate(input: ProductInput): string | null {
   if (!isNonNegativeNumber(input.price)) return "Harga tidak valid.";
   if (!isNonNegativeNumber(input.stock) || !Number.isInteger(input.stock)) return "Stok harus bilangan bulat ≥ 0.";
   if (typeof input.imageUrl !== "string" || !isAllowedProductImage(input.imageUrl)) return "Foto produk tidak valid.";
+  if (input.weightGrams != null && (!Number.isInteger(input.weightGrams) || input.weightGrams < 1 || input.weightGrams > 30000)) {
+    return "Berat harus bilangan bulat 1–30.000 gram.";
+  }
   return null;
 }
 
@@ -81,7 +84,9 @@ export async function updateProductAction(id: string, input: ProductInput): Prom
   const previous = await getProductById(id).catch(() => null);
   try {
     const { stock, ...rest } = normalize(input);
-    await updateProduct(id, rest);
+    // Sebelum migrasi ongkir berat, kolom belum ada: jangan tulis bila berat dikosongkan.
+    const weightColumnExists = previous?.weightGrams !== undefined;
+    await updateProduct(id, rest, weightColumnExists || rest.weightGrams != null);
     // Stok otomatis dari produksi & pesanan; angka yang diketik admin di form
     // dianggap hasil hitung fisik dan selisihnya dicatat sebagai penyesuaian.
     if (!previous || previous.stock !== stock) {

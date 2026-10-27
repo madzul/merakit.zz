@@ -160,13 +160,19 @@ export async function deleteSaleAction(id: string): Promise<ActionResult> {
   return { success: true };
 }
 
-export async function updateShippingZoneAction(id: string, cost: number, isActive: boolean): Promise<ActionResult> {
+export async function updateShippingZoneAction(
+  id: string,
+  cost: number,
+  extraPerKg: number,
+  isActive: boolean
+): Promise<ActionResult> {
   const authError = await requireAdmin();
   if (authError) return { error: authError };
-  if (!Number.isFinite(cost) || cost < 0 || cost > 10_000_000) return { error: "Tarif ongkir tidak valid." };
+  if (!Number.isFinite(cost) || cost < 0 || cost > 10_000_000) return { error: "Tarif 1 kg pertama tidak valid." };
+  if (!Number.isFinite(extraPerKg) || extraPerKg < 0 || extraPerKg > 10_000_000) return { error: "Tarif per kg berikutnya tidak valid." };
 
   try {
-    await updateShippingZone(id, Math.round(cost), Boolean(isActive));
+    await updateShippingZone(id, Math.round(cost), Math.round(extraPerKg), Boolean(isActive));
   } catch {
     return { error: "Gagal menyimpan tarif ongkir." };
   }

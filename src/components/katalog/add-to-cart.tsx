@@ -7,7 +7,7 @@ import { addToCart } from "@/lib/penjualan/cart-store";
 import { MAX_LINE_QUANTITY } from "@/lib/penjualan/constants";
 
 interface AddToCartProps {
-  product: { id: string; name: string; price: number; imageUrl: string };
+  product: { id: string; name: string; price: number; imageUrl: string; weightGrams: number | null };
 }
 
 /** Pilih jumlah lalu masukkan produk ke keranjang (halaman detail katalog). */
@@ -16,7 +16,10 @@ export function AddToCart({ product }: AddToCartProps) {
   const [status, setStatus] = useState<"idle" | "added" | "full">("idle");
 
   function handleAdd() {
-    const ok = addToCart({ productId: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl }, quantity);
+    const ok = addToCart(
+      { productId: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl, weightGrams: product.weightGrams },
+      quantity
+    );
     setStatus(ok ? "added" : "full");
   }
 
